@@ -53,7 +53,7 @@ const TERM_SHEET = [
 ];
 
 // The agreement and plan of merger the story drafts and reviews: agreement.js, loaded
-// once the workspace is up (the agreement, the § 9.3 clause Bob picks and the clause library's results).
+// once the workspace is up (the agreement, the knowledge clause Bob picks and the clause library's results).
 
 // The six vault files ZOE redacts and sends to the cloud AI for the review.
 const SENT_FILES = [
@@ -106,7 +106,7 @@ const LINES = {
   lockdown: "Received. Wi-Fi no longer needed. We're locked down.",
   catch:   'The review flags: Party 5 is an empty shell. Party 6 is its parent, and it is not in this deal.',
   proof:   'Your vault agrees: the parent signed the earlier confidentiality agreement.',
-  apply:   "Applying the review's changes: the new clause adopts this agreement's defined terms, and the parent joins as a party to stand behind the buyer's obligations.",
+  apply:   "Applying the review's change: the parent joins as a party and makes the buyer's representations and warranties alongside its subsidiary.",
   restore: 'Putting the real names back, on this laptop.',
   caught:  'They left the parent off the hook. Caught it.',
   jimmy3:  "Ten minutes. Tell me you've got something.",
@@ -171,7 +171,7 @@ function track(event, data) {
   const SHEET_TYPE = 0.025;    // the paper's type size, as a share of its width: a full page of small type
   const HANDOVER_BEAT_MS = 400; // after the laptop lands, before the phone moves to it
   const READ_W = 0.66;           // desktop reading camera: the screen's share of the viewport width
-  const INSERT_MS = 1500;        // § 9.3 appearing line by line in Word
+  const INSERT_MS = 1500;        // the clause (§ 9.6) appearing line by line in Word
   const CAPTURE_HOLD_MS = 1100; // the captured page shows in the phone before the laptop comes in
   const LAPTOP_IN_MS = 1100;    // the laptop's slide in from the right (the .scene translate in styles.css)
 
@@ -1549,19 +1549,13 @@ function track(event, data) {
   const ZOOM_DRAFT = 120;    // the draft running past
   const ZOOM_CLAUSE = 130;   // the clause landing, and the fix
   let desk = null;
-  // On a phone the laptop's screen is about 370 px wide: the Mac is drawn smaller (a small Mac window,
-  // larger chrome), and for the scrub, the clause and the fix Word switches to Web Layout (the text
-  // wraps to the window, as Word's own View > Web Layout does) with the pane closed and the text zoomed,
-  // so the passage reads at about 12 px.
-  const PHONE_DESK_W = 880;
-  const POST_DESK_W = 1100;  // after the introduction, on a desktop: the laptop is drawn smaller
-  const PHONE_ZOOM = 250;
-  const isPhone = () => portraitMQ.matches;
+  // Every size shows the same picture (William, round six, X5 and X6): the Mac window with Word and the ZOE
+  // pane open on the right, the whole time. A phone draws that same desk scaled down to its laptop's
+  // screen, at the desktop's zoom; small text is accepted ("They get the picture").
+  const POST_DESK_W = 1100;  // after the introduction: the laptop is drawn smaller
   function readingLayout(on, zoom) {
-    if (!isPhone()) return desk.word.setZoom(zoom, RM ? 0 : 700);
-    if (desk.el) desk.el.classList.toggle('b-web', on);
-    desk.word.setPaneOpen(!on);
-    return desk.word.setZoom(on ? PHONE_ZOOM : 100, 0);
+    desk.word.setPaneOpen(true);
+    return desk.word.setZoom(zoom, RM ? 0 : 700);
   }
 
   const noop = () => Promise.resolve();
@@ -1579,7 +1573,7 @@ function track(event, data) {
     if (desk) desk.destroy();
     screen.innerHTML = '';
     screen.hidden = false;
-    desk = window.ZoeScreens ? window.ZoeScreens.mount(screen, { app: 'word', wifi: false, clock: CLOCK, motion: !RM, width: width || (isPhone() ? PHONE_DESK_W : 1280) }) : stubDesk();
+    desk = window.ZoeScreens ? window.ZoeScreens.mount(screen, { app: 'word', wifi: false, clock: CLOCK, motion: !RM, width: width || 1280 }) : stubDesk();
     void screen.offsetWidth;
     screen.classList.add('is-on');
     return desk;
@@ -1687,33 +1681,33 @@ function track(event, data) {
     ],
   };
 
-  // § 9.3 as the precedent has it (that deal's defined terms), and how Adapt fits it to this agreement.
-  const CLAUSE_LEAD = 'Section 9.3 Knowledge; No Sandbagging.';
-  const ADAPT = [
-    'Notwithstanding anything in this Agreement to the contrary, no ', { from: 'Purchaser Indemnified Party', to: 'Buyer Indemnified Party' },
-    ' may recover any Losses for the breach of a representation or warranty of ', { from: 'the Target', to: 'the Company' },
-    ' if ', { from: 'Purchaser', to: 'Merger Sub' },
-    ' had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of ',
-    { from: 'Purchaser’s', to: 'Merger Sub’s' }, ' deal team in the Disclosure Schedule. A ',
-    { from: 'Purchaser Indemnified Party', to: 'Buyer Indemnified Party' },
-    ' that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.',
-  ];
-  const precedentText = () => ADAPT.map((s) => (typeof s === 'string' ? s : s.from)).join('');
+  // The knowledge clause. The precedent is another of the firm's merger agreements on the same template, so
+  // it already speaks this agreement's defined terms: it goes in word for word, and nothing in it is edited
+  // later. The precedent added it at the same place, as the last section of its Article IX, so it is § 9.6
+  // there too: the cards, the preview and the page all number it 9.6.
+  const CLAUSE_TEXT = 'Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub’s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.';
+  const CLAUSE_LEAD = 'Section 9.6 Knowledge; No Sandbagging.';            // in the precedent and on the page
   const CLAUSE_SOURCE = 'Merger Agreement, 2026, Delaware (Project Saltmarsh)';
-  const CLAUSE_TITLE = '9.3 Knowledge; No Sandbagging.';
+  const CLAUSE_TITLE = '9.6 Knowledge; No Sandbagging.';
   const CLAUSE_RESULTS = [
-    { title: CLAUSE_TITLE, source: CLAUSE_SOURCE, match: 100, text: `${CLAUSE_TITLE} ${precedentText()}` },
+    { title: CLAUSE_TITLE, source: CLAUSE_SOURCE, match: 100, text: `${CLAUSE_TITLE} ${CLAUSE_TEXT}` },
     { title: '8.6 Reliance Preserved.', source: 'Stock Purchase Agreement, 2025, Delaware (Project Cinderwell)', match: 92, text: '8.6 Reliance Preserved. The rights of the Purchaser Indemnitees to indemnification will not be affected by any investigation conducted by or on behalf of Purchaser, or by any knowledge acquired at any time, whether before or after the Closing Date.' },
     { title: '10.4 Known Breaches.', source: 'Asset Purchase Agreement, 2024, Delaware (Project Quillfeather)', match: 88, text: '10.4 Known Breaches. Buyer may not assert any claim for a breach of which Buyer had actual knowledge on the Closing Date, as shown by a writing delivered to Buyer before the Closing.' },
     { title: '7.2 Disclosure Updates.', source: 'Merger Agreement, 2022, Delaware (Project Wickerfield)', match: 81, text: '7.2 Disclosure Updates. Any supplement to the Disclosure Schedule delivered before the Closing will cure any breach it discloses if Parent elects to proceed with the Closing.' },
     { title: '9.5 Deal Team Knowledge.', source: 'Equity Purchase Agreement, 2023, Delaware (Project Thistledown)', match: 77, text: '9.5 Deal Team Knowledge. Knowledge of Buyer means the actual knowledge, after reasonable inquiry, of the individuals listed in Section 9.5 of the Disclosure Schedule.' },
   ];
-  const clauseCard = () => ({ title: CLAUSE_TITLE, source: CLAUSE_SOURCE, text: `${CLAUSE_LEAD} ${precedentText()}` });
+  // The pane's suggestions beside the two-party draft (the library's default first card names the parent).
+  const TWO_PARTY_SUGGESTIONS = [
+    { text: 'This Agreement and Plan of Merger is entered into as of the date set out above by and among Merger Sub and the Company, each a “Party” and together the “Parties”.' },
+    { text: 'This Stock Purchase Agreement is made as of the Effective Date by and among the Purchaser, the Seller and the Company, on the terms set out below.', less: true },
+    { text: 'The Parties intend that the Merger qualify as a reorganization for federal income tax purposes, and this Agreement is adopted as a plan of reorganization.' },
+  ];
+  const clauseCard = () => ({ title: CLAUSE_TITLE, source: CLAUSE_SOURCE, text: `${CLAUSE_LEAD} ${CLAUSE_TEXT}` });
 
   // The screen once the introduction is over: the finished draft in Word, Wi-Fi off, no callout.
   let restingReady = Promise.resolve();
   function restingScreen() {
-    mountDesk(isPhone() ? PHONE_DESK_W : POST_DESK_W);
+    mountDesk(POST_DESK_W);
     desk.setApp('word');
     desk.word.setPane('afterInsert', Object.assign(clauseCard(), { where: 'below ¶ this paragraph' }), { instant: true });
     const d = desk;
@@ -1722,7 +1716,6 @@ function track(event, data) {
       desk.word.setDocument(agreementDoc(), { title: 'Agreement and Plan of Merger', pages: 13 });
       desk.word.pageEl.querySelectorAll('.b-fill').forEach((el) => fillOne(el, false));
       insertClause(true);
-      adaptClause(true);
       const fixes = Array.from(desk.word.pageEl.querySelectorAll('.b-fix'));
       showFixes(fixes);
       restoreNames(fixes, false);
@@ -1994,23 +1987,22 @@ function track(event, data) {
 
   // ---------- The clause and the fix, in the page ----------
 
-  // § 9.3 lands below the [Reserved.] slot as a red tracked insertion, line by line; the slot is struck.
+  // § 9.6 goes in as a new section at the end of Article IX (after § 9.5), a red tracked insertion, line by
+  // line. Nothing is struck. (Its id keeps the old name "s93new" that the tests look for.)
   async function insertClause(instant) {
     const page = desk.word.pageEl;
-    const slot = page.querySelector('[data-id="s93"]');
-    if (!slot || page.querySelector('[data-id="s93new"]')) return;
+    const after = page.querySelector('[data-id="art9end"]');
+    if (!after || page.querySelector('[data-id="s93new"]')) return;
     const fast = instant || RM;
-    if (!fast) await wordScrollTo(slot, 0.3, 700);
-    slot.classList.add('zs-del');
-    if (!fast) await motion(400);
     const words = (t) => t.split(/(\s+)/).map((w) => (!w || /^\s+$/.test(w) ? w : `<span class="b-w">${esc(w)}</span>`)).join('');
     const p = document.createElement('p');
     p.className = 'zs-ins';
     p.dataset.id = 's93new';
-    p.innerHTML = `<span class="zs-k">${words(CLAUSE_LEAD)}</span> ${ADAPT.map((s, i) => (typeof s === 'string' ? words(s) : `<span class="b-from" data-i="${i}">${words(s.from)}</span>`)).join('')}`;
-    if (!fast) p.classList.add('is-typing');
-    slot.after(p);
+    p.innerHTML = `<span class="zs-k">${words(CLAUSE_LEAD)}</span> ${words(CLAUSE_TEXT)}`;
+    if (!fast) p.classList.add('is-typing');   // in place but unseen, so the camera can frame it first
+    after.after(p);
     if (fast) return;
+    await wordScrollTo(p, 0.3, 700);
     const lines = [];
     let top = null;
     p.querySelectorAll('.b-w').forEach((w) => {
@@ -2020,23 +2012,6 @@ function track(event, data) {
     lines.forEach((ln, i) => later(() => ln.forEach((w) => w.classList.add('is-on')), (i / lines.length) * INSERT_MS * MOTION));
     await motion(INSERT_MS + 150);
     p.classList.remove('is-typing');
-  }
-
-  // Adapt: the precedent's defined terms give way to this agreement's, as further tracked edits.
-  async function adaptClause(instant) {
-    const p = desk.word.pageEl.querySelector('[data-id="s93new"]');
-    if (!p) return;
-    for (const el of Array.from(p.querySelectorAll('.b-from'))) {
-      const seg = ADAPT[+el.dataset.i];
-      const del = document.createElement('span');
-      del.className = 'zs-del';
-      del.textContent = seg.from;
-      const add = document.createElement('span');
-      add.className = 'b-to';
-      add.textContent = seg.to;
-      el.replaceWith(del, ' ', add);
-      if (!instant && !RM) await motion(320);
-    }
   }
 
   function showFixes(els) {
@@ -2132,13 +2107,13 @@ function track(event, data) {
     check();
     desk.word.setDocument(agreementDoc(), { title: 'Agreement and Plan of Merger', pages: 13 });
     desk.word.setZoom(ZOOM_DRAFT);
-    desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.buyer.real.toUpperCase(), PARTIES.seller.real.toUpperCase()], similar: 3 }, { instant: true });
+    desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.buyer.real.toUpperCase(), PARTIES.seller.real.toUpperCase()], similar: 3, suggestions: TWO_PARTY_SUGGESTIONS }, { instant: true });
     await desk.setApp('word');
     alive();
     const page = desk.word.pageEl;
     const sc = desk.word.scrollEl;
     const blanks = Array.from(page.querySelectorAll('.b-fill'));
-    const slot = page.querySelector('[data-id="s93"]');
+    const slot = page.querySelector('[data-id="art9end"]');   // the run ends where the clause will land
     const done = new Set();
     const fill = zoeSay('fill', false);
     await runPage(DRAFT_RUN_MS, () => (slot ? Math.max(0, absTop(slot) - absTop(sc) - 0.3 * sc.clientHeight) : 0), (line) => {
@@ -2155,8 +2130,8 @@ function track(event, data) {
     await wait(dwell(LINES.fill));
   }
 
-  // 5. The anti-sandbagging clause: the local clause search, then Insert as a red tracked change. It is
-  // not fitted to this agreement here: that comes back with the cloud review's changes.
+  // 5. The anti-sandbagging clause: the local clause search, then Insert: § 9.6 lands at the end of Article IX
+  // as a red tracked insertion, already in this agreement's defined terms.
   async function beatClause() {
     await think('sandbag');
     zoeWorking(true);
@@ -2177,11 +2152,6 @@ function track(event, data) {
     desk.word.setPane('afterInsert', Object.assign(clauseCard(), { where: 'below ¶ this paragraph' }));
     await wait(dwell(LINES.inserting));
     await beat(300);
-    if (isPhone()) {
-      readingLayout(false, 100);
-      await wordScrollTo(desk.word.pageEl.querySelector('[data-id="s93new"]'), 0.2, 0);
-      alive();
-    }
     if (RM) await gesture('act4', 0, async () => {});
   }
 
@@ -2266,8 +2236,8 @@ function track(event, data) {
     await wait(Math.max(KEY_LINE_MS, dwell(LINES.proof)));
   }
 
-  // 8. The review's changes are applied, still in placeholders: the parent added as a party (red tracked
-  // changes), and the inserted clause fitted to this agreement's defined terms.
+  // 8. The review's change is applied, still in placeholders: the parent joins as a party and makes the
+  // buyer's representations and warranties alongside Merger Sub. Every edit is a red tracked insertion.
   async function beatApply() {
     clearThoughts();
     setStep(4.5);
@@ -2276,40 +2246,45 @@ function track(event, data) {
     const page = desk.word.pageEl;
     const fixes = Array.from(page.querySelectorAll('.b-fix'));
     const art5 = page.querySelector('[data-id="art5"]');
-    const early = fixes.filter((f) => art5 && (art5.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_PRECEDING));
-    const five = fixes.filter((f) => !early.includes(f) && f.closest('[data-id="art5"], [data-id="art5lead"]'));
-    const rest = fixes.filter((f) => !early.includes(f) && !five.includes(f));
+    // The cover, the parties clause and recital B; Article IV's lead-in; Article V; the signature page.
+    const art4lead = page.querySelector('[data-id="art4lead"]');
+    const before = (a, f) => a && (a.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_PRECEDING);
+    const early = fixes.filter((f) => before(art4lead, f));
+    const art4 = fixes.filter((f) => art4lead && art4lead.contains(f));
+    const five = fixes.filter((f) => !early.includes(f) && !art4.includes(f) && f.closest('[data-id^="art5"]'));
+    const rest = fixes.filter((f) => !early.includes(f) && !art4.includes(f) && !five.includes(f));
     desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.parent.mask, PARTIES.buyer.mask, PARTIES.seller.mask], similar: 3 });
     await readingLayout(true, ZOOM_CLAUSE);
     alive();
-    // In the order ZOE names them: the clause takes this agreement's defined terms, then the parent joins.
+    // In the order ZOE names them: the parent joins the parties clause, then Article V. Word is still at the
+    // top from the scrub, and the camera stays between the cover and Article V: Article IX, where the clause
+    // sits, is never in view from here to the end.
     const applying = zoeSay('apply', false);
-    const clause = page.querySelector('[data-id="s93new"]');
-    if (clause) {
-      await wordScrollTo(clause, 0.12, 700);
-      alive();
-      await adaptClause(false);
-      await motion(500);
-    }
-    await desk.word.scrollTo(0, RM ? 0 : 900 * MOTION);
+    await topOfDraft(600);
     alive();
     showFixes(early);
-    await motion(1200);
+    await motion(1400);
     if (art5) {
+      showFixes(art4);                             // "to Parent and Merger Sub", passed on the way down
       await wordScrollTo(art5, 0.15, 900);
       alive();
       showFixes(five);
-      await motion(1000);
+      await motion(1200);
     }
-    showFixes(rest);
+    showFixes(rest);                               // the signature page, off camera
     await applying;
     await wait(dwell(LINES.apply));
+  }
+
+  // The parties clause in view: the top of the agreement, the cover and the preamble.
+  function topOfDraft(ms) {
+    return desk.word.scrollTo(0, RM ? 0 : ms * MOTION);
   }
 
   // 9. The names come back: every placeholder turns back into the real name, address or date, a brief green flash
   // settling in the same yellow as before the scrub.
   async function beatRestore() {
-    await desk.word.scrollTo(0, RM ? 0 : 900 * MOTION);
+    await topOfDraft(900);
     alive();
     desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.parent.real.toUpperCase(), PARTIES.buyer.real.toUpperCase(), PARTIES.seller.real.toUpperCase()], similar: 3 });
     const restoring = zoeSay('restore', false);
@@ -2321,7 +2296,6 @@ function track(event, data) {
     await think('caught', false);
     await wait(dwell(LINES.caught));
     if (RM) await gesture('act5', 0, async () => {});
-    if (isPhone()) readingLayout(false, 100);
   }
 
   // ---------- Pills, inspect, replay ----------
@@ -2544,12 +2518,11 @@ function track(event, data) {
     const d = desk;
     await restingReady;
     if (desk !== d) return;
-    desk.el.classList.toggle('b-web', !!opts.web);
-    desk.word.setPaneOpen(!opts.paneClosed);
+    desk.word.setPaneOpen(true);                  // the ZOE pane always shows beside Word
     desk.word.setZoom(opts.zoom || 100);
     if (pane) desk.word.setPane(pane, pane === 'insertPreview' ? Object.assign(clauseCard(), { where: 'Below \u00b6 this paragraph' }) : {}, { instant: true });
     const p = desk.word.pageEl.querySelector('[data-id="s93new"]');
-    if (p) wordScrollTo(p, opts.paneClosed ? 0.12 : 0.2, 0);
+    if (p) wordScrollTo(p, 0.2, 0);
     return desk.setApp('word');
   };
   const inCockpit = (view, focus) => () => {
@@ -2558,11 +2531,11 @@ function track(event, data) {
     if (el) desk.cockpit.scrollEl.scrollTop = Math.max(0, absTop(el) - absTop(desk.cockpit.scrollEl) - 12);
     return desk.setApp('safari');
   };
-  // One screen per ability: Word zoomed in on the tracked § 9.3 (phones: the story's reading layout); the
+  // One screen per ability: Word on the tracked § 9.6 with the ZOE pane beside it; the
   // template search read as ideas with the 100% match; the diligence filters and matched passages; the
   // scrubbed copy.
   const ABILITY_VIEWS = {
-    word: () => (isPhone() ? inWord(null, { web: true, paneClosed: true, zoom: PHONE_ZOOM })() : inWord(null, { paneClosed: true, zoom: 165 })()),
+    word: inWord(null, { zoom: ZOOM_CLAUSE }),   // the clause at the story's zoom, the pane open beside it
     templates: inCockpit('templates', '.zs-readas'),
     diligence: inCockpit('diligence'),
     privacy: inCockpit('scrubbed'),

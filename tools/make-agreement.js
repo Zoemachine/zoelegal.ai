@@ -57,7 +57,8 @@ for (let para of part('## Part A — Agreement and Plan of Merger', '*End of Par
   if (inTitle) { blocks.push([/^Form of/.test(para) ? 'note' : 'c', para]); continue; }
   const lead = para.match(/^\*\*(.+?)\*\*\s*([\s\S]*)$/);
   if (lead && rows.length === 1) {
-    const id = /^Section 9\.3\b/.test(lead[1]) ? 's93' : null;
+    // art9end: Article IX's last section, after which the clause lands as Section 9.6 (there is no "[Reserved.]" slot any more).
+    const id = /^Section 9\.5\b/.test(lead[1]) ? 'art9end' : null;
     blocks.push(['p', lead[2], lead[1], id]);
     continue;
   }
@@ -65,22 +66,30 @@ for (let para of part('## Part A — Agreement and Plan of Merger', '*End of Par
   if (/^\([a-z]\)\s/.test(para)) { blocks.push(['sub', para]); continue; }
   const id = /^This AGREEMENT AND PLAN OF MERGER/.test(para) ? 'preamble'
     : /^B\. Parent, as the sole member/.test(para) ? 'recB'
-      : /^Parent and Merger Sub, jointly and severally, represent/.test(para) ? 'art5lead' : null;
+      : /^Except as set out in the disclosure schedule/.test(para) ? 'art4lead'
+        : /^(Each of Parent and )?Merger Sub(, jointly and severally,)? represents? and warrants? to the Company as follows/.test(para) ? 'art5lead' : null;
   blocks.push(['p', para, null, id]);
 }
 
-// ---------- The cloud AI's fix: the parent becomes a party ----------
-// Its additions are tracked insertions, shown in green: [block test, phrase] (no phrase: the whole block).
+// ---------- The cloud AI's fix: the parent joins as a party (insertions only; nothing is struck) ----------
+// Its additions are tracked insertions, shown in red: [block test, phrase] (no phrase: the whole block).
 // INS_A and INS_B bracket each insertion (characters the agreement never uses); hero.js turns them into spans.
+// Article IX is not touched: the parent goes into the parties clause, recital B, Article IV's lead-in, Article V and the signature page.
 const INS_A = '\u27e6';
 const INS_B = '\u27e7';
+const lead = (re) => (x) => x[2] && re.test(x[2]);
 const INS = [
   [(x) => x[0] === 'cb' && /^MERIDIAN HOLDINGS LLC/.test(x[1])],
   [(x) => x[3] === 'preamble', 'Meridian Holdings LLC, a Delaware limited liability company (\u201cParent\u201d); '],
   [(x) => x[3] === 'recB'],
+  [(x) => x[3] === 'art4lead', 'Parent and '],
   [(x) => x[3] === 'art5', 'PARENT AND '],
-  [(x) => x[3] === 'art5lead'],
-  [(x) => x[0] === 'sub' && /^\(b\) Parent and Merger Sub, jointly and severally/.test(x[1]), 'Parent and Merger Sub, jointly and severally,'],
+  [(x) => x[3] === 'art5lead', 'Each of Parent and '],
+  [(x) => x[3] === 'art5lead', ', jointly and severally,'],
+  [lead(/^Section 5\.1\b/), 'Each of Parent and '],
+  [lead(/^Section 5\.2\b/), 'Each of Parent and '],
+  [lead(/^Section 5\.4\b/), 'each of Parent and '],
+  [lead(/^Section 5\.5\b/), 'Parent or '],
   // Parent's signature block: its lines first, while the party name above them is still unmarked.
   [(x, i) => x[0] === 'lines' && i > 0 && blocks[i - 1][0] === 'sb' && /^MERIDIAN HOLDINGS LLC/.test(blocks[i - 1][1])],
   [(x) => x[0] === 'sb' && /^MERIDIAN HOLDINGS LLC/.test(x[1])],
@@ -94,9 +103,20 @@ INS.forEach(([test, phrase]) => {
   x[1] = x[1].replace(phrase, INS_A + phrase + INS_B);
 });
 
+// The draft the story shows before the review is a two-party agreement: outside the tracked insertions the word "Parent" is
+// used nowhere (only the insertions bring the parent in), Article IX has no "[Reserved.]" slot, and nothing is struck.
+// The source text must already read that way (the conforming edits are listed in the round-six notes); stop if it does not.
+const visible = blocks.map((x) => `${x[2] || ''} ${x[1]}`).join('\n').replace(new RegExp(`${INS_A}[^${INS_B}]*${INS_B}`, 'g'), '');
+if (/\bParent\b/.test(visible.replace(/\(\u201cParent\u201d\)/g, ''))) throw new Error('the source still uses "Parent" outside the tracked insertions');
+if (/\[Reserved/.test(visible)) throw new Error('the source still has a [Reserved.] slot');
+
 // ---------- Part B: the clause Bob picks ----------
-const b = curly(part('## Part B — Anti-sandbagging clause (the one Bob picks)', '---').trim()).match(/^\*\*(.+?)\*\*\s*([\s\S]*)$/);
-const insert = { lead: b[1], text: b[2].trim() };
+// It lands as Section 9.6, a plain insertion after Section 9.5 (nothing is struck), in this agreement's own defined terms.
+// (The source's Part B is the precedent as the firm's earlier agreement numbers it; the page shows the clause as it lands.)
+const insert = {
+ "lead": "Section 9.6 Knowledge; No Sandbagging.",
+ "text": "Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub’s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud."
+};
 
 // ---------- Part C: the clause library's ten results ----------
 let lib = part('## Part C — Clause library: top 10 results', '---');

@@ -56,6 +56,9 @@ const PRODUCTS = JSON.parse(Buffer.from('eyJhbGxvd2VkSW4iOiAiaGVyby5qcyIsICJmcm9
 const PANEL_ONLY = JSON.parse(Buffer.from('W3sicmUiOiAiXFxiUkFHXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAiXFxiTExNXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAiXFxiSVNQXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAic3VicHJvY2Vzc29yIiwgImNzIjogZmFsc2V9XQ==', 'base64').toString());
 const PANEL_FROM = '// Standard cloud AI: the chain';
 const PANEL_TO = 'const ZOE = {';
+// Round six: the clause is a plain insertion (Section 9.6, after Article IX's last section); nothing is ever struck.
+const CLAUSE_TEXT = 'Section 9.6 Knowledge; No Sandbagging. Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub\'s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.';
+const LINE_28 = "Applying the review's change: the parent joins as a party and makes the buyer's representations and warranties alongside its subsidiary.";
 // Round five: dates are scrubbed to one token (and only while scrubbed); dollar amounts are never touched or highlighted.
 const DATE_TOKEN = '[Month_Day_Year]';
 const REAL_DATES = ['November 6, 2026', 'January 15, 2027', 'December 31, 2027'];
@@ -176,6 +179,41 @@ async function openLid(page) {
 
 // The laptop is open and the work has begun: Act III (the skip control appears here).
 const waitWorking = (page, timeout = 15000) => page.waitForFunction(() => window.__zoeHero.act >= 3, null, { timeout });
+
+// Samples the document and the Word window every 100 ms for the whole story (round six): struck text and "[Reserved",
+// the clause's text and whether it is in Word's window, and whether the ZOE pane is open inside the Word window.
+async function startWatch(page) {
+  await page.evaluate(() => {
+    window.__watch = [];
+    setInterval(() => {
+      const bar = document.querySelector('.screen .zs-menubar');
+      const pg = document.querySelector('.screen .zs-page');
+      if (!bar || !pg) return;
+      const word = /^Word /.test(bar.innerText.replace(/\s+/g, ' '));
+      const win = document.querySelector('.screen .zs-word');
+      const pane = document.querySelector('.screen .zs-pane');
+      const canvas = document.querySelector('.screen .zs-canvas');
+      const w = win && win.getBoundingClientRect();
+      const pr = pane && pane.getBoundingClientRect();
+      const cl = pg.querySelector('[data-id="s93new"]');
+      const cr = cl && cl.getBoundingClientRect();
+      const kr = canvas && canvas.getBoundingClientRect();
+      const lit = (document.querySelector('.screen .zs-zpct') || {}).textContent;
+      window.__watch.push({
+        t: performance.now(), word,
+        struck: pg.querySelectorAll('.zs-del, del, s, strike').length,
+        reserved: /\[Reserved/.test(pg.textContent),
+        clause: cl ? cl.textContent : null,
+        typing: !!(cl && cl.classList.contains('is-typing')),
+        inView: !!(cr && kr && cr.height > 0 && cr.bottom > kr.top + 1 && cr.top < kr.bottom - 1),
+        pane: !!(pane && !pane.hidden && w && pr.width > 0.15 * w.width && pr.height > 0.4 * w.height), // relative: the phone draws the same desk scaled down
+        paneIn: !!(pr && w && pr.left >= w.left - 1 && pr.right <= w.right + 1 && pr.top >= w.top - 1 && pr.bottom <= w.bottom + 1),
+        zoom: lit,
+        pinfo: pane ? { h: pane.hidden, d: getComputedStyle(pane).display, w: Math.round(pr.width), ht: Math.round(pr.height), l: Math.round(pr.left), r: Math.round(pr.right), ww: w ? [Math.round(w.left), Math.round(w.right)] : null } : null,
+      });
+    }, 100);
+  });
+}
 
 // Waits until the journal holds a spoken line containing `frag`.
 const said = (page, frag, timeout = 60000) =>
@@ -547,8 +585,11 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   const total = await page.locator('.screen .zs-page [data-k]').count();
   expect(total).toBeGreaterThanOrEqual(14); // names, addresses, the EIN, the escrow account and three dates: not the dollar amounts
   await shot(page, info, 'act3-word');
-  // Only the document text zooms (Word's own zoom): the status bar's percent moves up from 100 (on a phone it is larger still).
+  // Only the document text zooms (Word's own zoom): the status bar's percent moves up from 100 (the same on the phone as on the desktop), and the ZOE pane is open inside the Word window.
   await page.waitForFunction(() => /\b(1[4-9]\d|[2-9]\d\d)%/.test(document.querySelector('.screen').innerText), null, { timeout: 15000 });
+  await expect(page.locator('.screen .zs-word .zs-pane')).toBeVisible();
+  expect(await page.evaluate(() => { const w = document.querySelector('.screen .zs-word').getBoundingClientRect(); const r = document.querySelector('.screen .zs-pane').getBoundingClientRect(); return r.width > 0.15 * w.width && r.height > 0.4 * w.height && r.left >= w.left - 1 && r.right <= w.right + 1 && r.bottom <= w.bottom + 1; })).toBe(true);
+  expect(await page.evaluate(() => document.querySelectorAll('.zs-root.b-web, .b-web').length)).toBe(0); // the phone has no web layout any more
   expect(await hero(page, 'gesture')).toBeNull();
   // The page runs down the sheet and every key term is yellow.
   await page.waitForFunction(() => {
@@ -605,11 +646,12 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   expect(errors).toEqual([]);
 });
 
-test('Acts III-V: vault and templates, the draft kept yellow, the clause with no Adapt, the scrub only at the review, the changes, the flip back', async ({ page }, info) => {
+test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain insertion, the scrub only at the review, the parent added, the flip back', async ({ page }, info) => {
   test.setTimeout(300000);
   const errors = watchErrors(page);
   await open(page);
   await startJournal(page);
+  await startWatch(page);
   await openLid(page);
   const wifi = () => page.evaluate(() => window.__journal.filter((e) => e.k === 'wifi').map((e) => e.v));
   // Tracked changes are red, as in real Word: the text itself computes to red.
@@ -680,7 +722,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   const draftKept = await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page .b-filled[data-keep]')).map((e) => e.textContent));
   await shot(page, info, 'act4-draft');
 
-  // Beat 5: the clause: five local results, the preview, then § 9.3 lands as a red tracked change. No Adapt.
+  // Beat 5: the clause: five local results, the preview, then Section 9.6 lands as red inserted text after Article IX's last section. Nothing is struck.
   await said(page, 'Top 10 matches.');
   await page.waitForTimeout(400);
   expect(await screenText(page)).toContain('Knowledge; No Sandbagging');
@@ -693,10 +735,15 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   const ins = page.locator('.screen .zs-page [data-id="s93new"]');
   await expect(ins).toHaveClass(/zs-ins/);
   expect(await ins.evaluate(red)).toBe(true); // tracked insertions are red, as in real Word
-  expect(await ins.textContent()).toMatch(/^Section 9\.3 Knowledge; No Sandbagging\./);
-  await expect(page.locator('.screen .zs-page [data-id="s93"]')).toHaveClass(/zs-del/); // the [Reserved.] slot is struck
+  expect(await ins.textContent()).toMatch(/^Section 9\.6 Knowledge; No Sandbagging\./);
+  expect((await ins.textContent()).replace(/\u2019/g, "'")).toBe(CLAUSE_TEXT);
+  // A plain insertion: no slot, no "[Reserved", nothing struck; it follows Article IX's last section and Article X comes next.
+  expect(await page.locator('.screen .zs-page [data-id="s93"]').count()).toBe(0);
+  expect(await page.evaluate(() => { const pg = document.querySelector('.screen .zs-page'); const a = pg.querySelector('[data-id="art9end"]'); const c = pg.querySelector('[data-id="s93new"]'); return !!a && !!c && a.nextElementSibling === c && /^ARTICLE X\b/.test(c.nextElementSibling.textContent); })).toBe(true);
+  expect(await page.$eval('.screen .zs-page', (el) => el.textContent)).not.toMatch(/\[Reserved|Section 9\.3 \[/);
+  expect(await page.locator('.screen .zs-page .b-to').count()).toBe(0);
   m = await marks();
-  expect(m.del).toBe(1); // only the slot: no adapting edits yet
+  expect(m.del).toBe(0); // nothing struck
   expect(m.ph).toBe(0);
   expect(m.hl).toBeGreaterThanOrEqual(nonKept.length); // still yellow through the clause
   await shot(page, info, 'act4-inserted');
@@ -705,7 +752,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   await said(page, 'One last check before it goes out: a cloud AI review, with the names scrubbed.');
   m = await marks();
   expect(m.ph).toBe(0); // still nothing scrubbed when the review is proposed
-  expect(m.del).toBe(1); // still no Adapt
+  expect(m.del).toBe(0); // still nothing struck
   await page.evaluate(() => {
     window.__sw = [];
     const pg = document.querySelector('.screen .zs-page');
@@ -794,16 +841,35 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   expect(await screenText(page)).toMatch(/Who signed/);
   await shot(page, info, 'act4-signatures');
 
-  // Beat 8: the review's changes land in the document, still in placeholders: the parent joins; the clause takes this agreement's terms.
-  await said(page, "Applying the review's changes: the new clause adopts this agreement's defined terms, and the parent joins as a party to stand behind the buyer's obligations.");
+  // Beat 8: the review's change lands in the document, still in placeholders: the parent joins as a party (insertions only).
+  await said(page, LINE_28);
   await page.waitForFunction(() => /^Word /.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
   await page.waitForFunction(() => Array.from(document.querySelectorAll('.screen .zs-page .b-fix')).some((f) => !f.hidden && f.querySelector('.b-name.zs-ph')), null, { timeout: 15000 });
   const fix = page.locator('.screen .zs-page .b-fix:not([hidden])').first();
   expect(await fix.evaluate(red)).toBe(true);
   expect(await fix.textContent()).toContain('Party 6');
-  await page.waitForFunction(() => document.querySelectorAll('.screen .zs-page [data-id="s93new"] .zs-del').length >= 3 && document.querySelectorAll('.screen .zs-page [data-id="s93new"] .b-to').length >= 3, null, { timeout: 15000 });
-  const adapted = await ins.textContent();
-  ['Purchaser Indemnified Party', 'Buyer Indemnified Party'].forEach((t) => expect(adapted).toContain(t));
+  // Once the camera has been through Article V, every insertion is in: the parties clause, the recital, Article IV's lead-in,
+  // Article V and the signature page, and the cover; none in Articles VI to X (so none near the clause).
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('.screen .zs-page [data-id="art5lead"] .b-fix')).some((f) => !f.hidden), null, { timeout: 20000 });
+  await page.waitForTimeout(1500);
+  const fixes = await page.evaluate(() => {
+    const pg = document.querySelector('.screen .zs-page');
+    const kids = Array.from(pg.children);
+    const idx = (re) => kids.findIndex((k) => re.test(k.textContent.trim()) && /^(ARTICLE|SIGNATURE)/.test(k.textContent.trim()));
+    const a6 = idx(/^ARTICLE VI\b/), sig = idx(/^SIGNATURE PAGE/);
+    const live = Array.from(pg.querySelectorAll('.b-fix')).filter((e) => !e.hidden && !e.closest('[hidden]'));
+    const at = live.map((e) => { let b = e; while (b.parentElement !== pg) b = b.parentElement; return kids.indexOf(b); });
+    return { n: live.length, outside: at.filter((i) => !(i < a6 || i >= sig)).length, inArt9: live.filter((e) => e.closest('[data-id="s93new"], [data-id="art9end"]')).length, a6, sig,
+      text: (pg.querySelector('[data-id="art5lead"]') || {}).textContent || '', head: (pg.querySelector('[data-id="art5"]') || {}).textContent || '', pre: (pg.querySelector('[data-id="preamble"]') || {}).textContent || '' };
+  });
+  expect(fixes.a6).toBeGreaterThan(0);
+  expect(fixes.sig).toBeGreaterThan(fixes.a6);
+  expect(fixes.n).toBeGreaterThanOrEqual(10);
+  expect(fixes.outside, 'insertions outside the parties clause, the recital, Article IV and V, the cover and the signature page').toBe(0);
+  expect(fixes.inArt9).toBe(0);
+  expect(fixes.text.trim()).toBe('Each of Parent and Merger Sub, jointly and severally, represents and warrants to the Company as follows:');
+  expect(fixes.head).toMatch(/REPRESENTATIONS AND WARRANTIES OF PARENT AND MERGER SUB/);
+  expect(fixes.pre).toContain('Party 6, a Delaware limited liability company (“Parent”)');
   m = await marks();
   expect(m.ph).toBeGreaterThanOrEqual(nonKept.length); // everything is still a placeholder (the kept figures never were)
   expect(await amountsMarked()).toEqual([]);
@@ -817,6 +883,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   await page.waitForTimeout(500);
   m = await marks();
   expect(m.ph).toBe(0);
+  expect(m.del).toBe(0);
   expect(await page.evaluate(() => document.querySelectorAll('.screen .zs-page .b-filled:not(.zs-hl):not([data-keep])').length)).toBe(0);
   expect(await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page .b-name')).filter((e) => !e.closest('[hidden]') && !e.classList.contains('zs-hl')).length)).toBe(0);
   // The draft's figures equal the term sheet's again, and the text is the one before the scrub, not the scrubbed one.
@@ -832,6 +899,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
   expect(await page.$eval('.screen .zs-page', (el) => el.textContent)).not.toContain(DATE_TOKEN);
   const agreementText = await page.$eval('.screen .zs-page', (el) => el.textContent);
   expect(agreementText).toContain('Meridian Holdings LLC, a Delaware limited liability company (“Parent”)');
+  expect(await page.$eval('.screen .zs-page [data-id="art5lead"]', (el) => el.textContent.trim())).toBe('Each of Parent and Merger Sub, jointly and severally, represents and warrants to the Company as follows:');
   expect(agreementText).not.toMatch(/\bParty \d\b|\[(ORG|PERSON|ADDRESS)_\d+\]/);
   await shot(page, info, 'act5-restored');
 
@@ -849,13 +917,33 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause with no
     'ZOE AI: Adding 25 paragraphs from 6 vault files, scrubbed the same way.', 'ZOE AI: Sent.', "ZOE AI: Received. Wi-Fi no longer needed. We're locked down.",
     'ZOE AI: The review flags: Party 5 is an empty shell. Party 6 is its parent, and it is not in this deal.',
     'ZOE AI: Your vault agrees: the parent signed the earlier confidentiality agreement.',
-    "ZOE AI: Applying the review's changes: the new clause adopts this agreement's defined terms, and the parent joins as a party to stand behind the buyer's obligations.",
+    `ZOE AI: ${LINE_28}`,
     'ZOE AI: Putting the real names back, on this laptop.', 'Bob (thinking): They left the parent off the hook. Caught it.',
     "Jimmy: Ten minutes. Tell me you've got something.", "Bob: Draft's done. And their shell left the parent off the hook. It's in now.", 'Jimmy: …How?', 'Bob: ZOE AI.'];
   const at = order.map((l) => lines.indexOf(l));
   if (!at.every((i) => i >= 0)) console.log('[journal]', JSON.stringify(lines));
   expect(at.every((i) => i >= 0)).toBe(true);
   expect(at).toEqual([...at].sort((a, b) => a - b));
+  // The watcher (every 100 ms from the opening of the lid to the end): nothing struck, no "[Reserved", the clause's text one and the same
+  // from its insertion to the end, the clause out of Word's window from beat 8 on, and the ZOE pane open inside Word's window whenever Word is up.
+  const watch = await page.evaluate(() => window.__watch);
+  expect(watch.length).toBeGreaterThan(300);
+  expect(watch.filter((w) => w.struck > 0).length, 'samples with struck text').toBe(0);
+  expect(watch.filter((w) => w.reserved).length, 'samples showing [Reserved').toBe(0);
+  const done = watch.filter((w) => w.clause !== null && !w.typing).map((w) => w.clause.replace(/\u2019/g, "'"));
+  expect(done.length).toBeGreaterThan(50);
+  expect(Array.from(new Set(done))).toEqual([CLAUSE_TEXT]);
+  const t28 = j.find((e) => e.k === 'line' && e.v === `ZOE AI: ${LINE_28}`).t;
+  const tEnd = j.find((e) => e.k === 'line' && e.v === 'Bob: ZOE AI.').t; // the story's last line; after it the page unlocks and the Full Word Support picture (clause in view) is the hero's own page
+  const seen = watch.map((w, i) => ({ i, dt: Math.round(w.t - t28), w })).filter((x) => x.w.t >= t28 && x.w.t < tEnd && x.w.word && x.w.inView);
+  if (seen.length) console.log('[clause in view]', JSON.stringify(seen.map((x) => ({ dt: x.dt, prev: watch[x.i - 1] && { dt: Math.round(watch[x.i - 1].t - t28), word: watch[x.i - 1].word, inView: watch[x.i - 1].inView }, next: watch[x.i + 1] && { dt: Math.round(watch[x.i + 1].t - t28), word: watch[x.i + 1].word, inView: watch[x.i + 1].inView } }))));
+  expect(seen.length, 'samples with the clause in Word\'s window from beat 8 on').toBe(0);
+  const wordUp = watch.filter((w) => w.word);
+  expect(wordUp.length).toBeGreaterThan(100);
+  const noPane = wordUp.filter((w) => !w.pane || !w.paneIn);
+  { const grp = []; noPane.forEach((w) => { const l = grp[grp.length - 1]; if (l && w.t - l.e < 350) { l.e = w.t; l.n += 1; } else grp.push({ s: w.t, e: w.t, n: 1, z: w.zoom, pane: w.pane, paneIn: w.paneIn, pinfo: w.pinfo }); }); console.log('[no pane groups]', JSON.stringify(grp.map((g) => ({ s: Math.round(g.s - t28), e: Math.round(g.e - t28), n: g.n, z: g.z, pane: g.pane, paneIn: g.paneIn, pinfo: g.pinfo })))); }
+  if (noPane.length) console.log('[no pane]', JSON.stringify({ n: noPane.length, first: Math.round(noPane[0].t - t28), last: Math.round(noPane[noPane.length - 1].t - t28), pane: noPane.filter((w) => !w.pane).length, paneIn: noPane.filter((w) => !w.paneIn).length, tEnd: Math.round(tEnd - t28), zoomSet: Array.from(new Set(noPane.map((w) => w.zoom))) }));
+  expect(noPane.length, 'Word on screen without the pane open inside its window').toBe(0);
   // One name: every spoken line from the product carries the label "ZOE AI", and none says a bare "ZOE".
   expect(lines.filter((l) => /\bZOE\b(?! AI)/.test(l))).toEqual([]);
   // The cloud does not speak, and no line says "frontier", "Adapt" or "morph".
@@ -1632,7 +1720,7 @@ test('the triage card sits directly under the stage, with its roadmap badge, and
 
 // The four product abilities: id, name, the app the laptop shows, and what each view label puts on the screen.
 const ABILITIES = [
-  { id: 'word', name: 'Full Word Support', app: /^Word File Edit View/, screen: /Section 9\.3/,
+  { id: 'word', name: 'Full Word Support', app: /^Word File Edit View/, screen: /Section 9\.6/,
     text: ['ZOE AI includes a full-featured Microsoft Word add-in that lets attorneys draft and review documents without leaving Word. It supports automated drafting, redline review and quality-of-life features for drafting and reviewing in Word. Complex automated document processing happens without the document ever leaving your laptop or desktop: client information stays local.'] },
   { id: 'templates', name: 'Templates & Clauses', app: /^Safari File Edit View/, screen: /ZOE read your search as/i,
     text: ["Search every clause and template your firm prefers to use, without giving up control to the cloud. Your firm's intellectual property stays local, and each attorney can search the firm's preferred templates and language instantly.",
@@ -1774,6 +1862,29 @@ test('each ability shows one screen; Next walks through the four', async ({ page
     await page.evaluate((id) => window.__zoeHero.showAbility(id), a.id);
     await expectAbility(page, a, { hash: false });
     await page.waitForFunction((src) => new RegExp(src, 'i').test(document.querySelector('.screen').innerText.replace(/\s+/g, ' ')), a.screen.source, { timeout: 8000 });
+    if (a.id === 'word') {
+      // Full Word Support: Section 9.6 as tracked red text after Article IX, nothing struck, no review insertion in view, the pane open inside Word's window, one zoom.
+      await page.waitForTimeout(1500);
+      const w = await page.evaluate(() => {
+        const pg = document.querySelector('.screen .zs-page');
+        const win = document.querySelector('.screen .zs-word').getBoundingClientRect();
+        const pr = document.querySelector('.screen .zs-pane').getBoundingClientRect();
+        const cv = document.querySelector('.screen .zs-canvas').getBoundingClientRect();
+        const cl = pg.querySelector('[data-id="s93new"]');
+        const cr = cl && cl.getBoundingClientRect();
+        return { struck: pg.querySelectorAll('.zs-del, del, s, strike').length, reserved: /\[Reserved/.test(pg.textContent), clause: cl ? cl.textContent.replace(/\u2019/g, "'") : null,
+          inView: !!cr && cr.bottom > cv.top && cr.top < cv.bottom, fixInView: Array.from(pg.querySelectorAll('.b-fix')).filter((f) => !f.hidden && !f.closest('[hidden]') && f.getBoundingClientRect().bottom > cv.top && f.getBoundingClientRect().top < cv.bottom).length,
+          pane: pr.width > 0.15 * win.width && pr.height > 0.4 * win.height && !document.querySelector('.screen .zs-pane').hidden && pr.left >= win.left - 1 && pr.right <= win.right + 1 && pr.bottom <= win.bottom + 1, zoom: document.querySelector('.screen .zs-zpct').textContent, web: document.querySelectorAll('.b-web').length };
+      });
+      expect(w.struck).toBe(0);
+      expect(w.reserved).toBe(false);
+      expect(w.clause).toBe(CLAUSE_TEXT);
+      expect(w.inView).toBe(true);
+      expect(w.fixInView).toBe(0);
+      expect(w.pane).toBe(true);
+      expect(w.zoom).toBe('130%');
+      expect(w.web).toBe(0);
+    }
     await shot(page, info, `ability-${a.id}`);
   }
   // "Next": a quiet text link at the foot of each description; four steps go round all four and back to the first.
@@ -1999,6 +2110,52 @@ test('the Privacy picture agrees with the story: the date token, the real amount
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await shot(page, info, 'ability-privacy-r5');
   expect(errors).toEqual([]);
+});
+
+test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the pane is open at both sizes', async ({ browser }, info) => {
+  test.skip(!isWide(info), 'checked once, at both sizes inside');
+  test.setTimeout(420000);
+  const sizes = {
+    desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
+    phone: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+  };
+  const got = {};
+  for (const [name, opts] of Object.entries(sizes)) {
+    const ctx = await newGuardedContext(browser, opts);
+    const page = await ctx.newPage();
+    const errors = watchErrors(page);
+    await page.goto(BASE);
+    await page.waitForFunction(() => window.__zoeHero && window.__zoeHero.act >= 1);
+    await startJournal(page);
+    await openLid(page);
+    const read = () => page.evaluate(() => document.querySelector('.screen .zs-zpct').textContent);
+    const zoom = async () => { let prev = await read(); for (let i = 0; i < 10; i += 1) { await page.waitForTimeout(500); const now = await read(); if (now === prev) return now; prev = now; } return prev; }; // settled: the zoom animates
+    const pane = () => page.evaluate(() => { const w = document.querySelector('.screen .zs-word').getBoundingClientRect(); const e = document.querySelector('.screen .zs-pane'); const r = e.getBoundingClientRect(); return !e.hidden && r.width > 0.15 * w.width && r.height > 0.4 * w.height && r.left >= w.left - 1 && r.right <= w.right + 1 && r.bottom <= w.bottom + 1; });
+    const z = {};
+    await said(page, 'Key terms identified.', 40000);
+    await page.waitForTimeout(1500);
+    z.identified = await zoom(); z.paneIdentified = await pane();
+    await said(page, "Filling in your firm's template from the term sheet.", 60000);
+    await page.waitForFunction(() => !document.querySelector('.screen .zs-page .b-fill') && document.querySelectorAll('.screen .zs-page .b-filled').length > 20, null, { timeout: 30000 });
+    await page.waitForTimeout(1200);
+    z.draft = await zoom(); z.paneDraft = await pane();
+    await said(page, 'Inserting now.', 60000);
+    await page.waitForFunction(() => { const c = document.querySelector('.screen .zs-page [data-id="s93new"]'); return c && !c.classList.contains('is-typing'); }, null, { timeout: 20000 });
+    await page.waitForTimeout(1200);
+    z.clause = await zoom(); z.paneClause = await pane();
+    await page.evaluate(() => window.__zoeHero.skip());
+    await expect(page.locator('.post-hero')).toBeVisible();
+    await page.evaluate(() => window.__zoeHero.showAbility('word'));
+    await page.waitForTimeout(1800);
+    z.fullWord = await zoom(); z.paneFullWord = await pane();
+    expect(errors).toEqual([]);
+    got[name] = z;
+    await ctx.close();
+  }
+  expect(got.phone).toEqual(got.desktop);
+  Object.entries(got.desktop).forEach(([k, v]) => { if (k.startsWith('pane')) expect(v, k).toBe(true); });
+  expect(got.desktop.fullWord).toBe('130%');
+  fs.writeFileSync(path.join(SHOTS, 'r6-zoom.json'), JSON.stringify(got, null, 2));
 });
 
 test('first paint on throttled 4G, total transfer', async ({ page }) => {

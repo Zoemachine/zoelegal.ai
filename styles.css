@@ -391,7 +391,6 @@ body {
 .screen .zs-page .is-typing { text-decoration-color: transparent; }
 .screen .zs-page .is-typing .b-w { opacity: 0; }
 .screen .zs-page .is-typing .b-w.is-on { opacity: 1; text-decoration: underline #c00000; transition: opacity 0.15s ease; }
-.screen .zs-page .b-to { text-decoration: underline double; text-decoration-color: #c00000; }
 .screen .zs-page hr { border: 0; border-top: 1px solid #bbb; margin: 1.2em 0; }
 
 /* A placeholder in a spoken line ("Who is Party 5?") and in the inspect view. */
@@ -1757,13 +1756,6 @@ html.hero-lock body {
 @media (prefers-reduced-motion: reduce) {
   .post-hero, .stage.is-post::before, .stage.is-post .abilities { animation: none; }
 }
-
-/* Phones: Word's Web Layout for the passages that must be read (hero.js readingLayout): no page edge,
-   the text wraps to the window, so a high zoom stays inside it. */
-.screen .zs-root.b-web .zs-canvas { background: #fff; }
-.screen .zs-root.b-web .zs-pagewrap { display: block; min-width: 0; padding: 0; }
-.screen .zs-root.b-web .zs-page { width: auto; min-height: 0; padding: 0.8em 1em 2em; box-shadow: none; }
-.screen .zs-root.b-web .zs-page p.zs-ins::before { left: -0.5em; }
 
 /* When the navigation shows during the story (reduced motion, a deep link), the chat and the badge
    start below it; after the introduction the badge gives way to the hero on phones. */
