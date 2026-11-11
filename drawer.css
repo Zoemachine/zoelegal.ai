@@ -133,6 +133,9 @@
   animation: pick-ring 1.4s ease-in-out infinite;
 }
 
+/* The comparison's opening text. */
+#dataflow .flow-lede { margin: 0 0 6px; max-width: 64ch; }
+
 .flow-pick { position: relative; }
 
 /* `Patent pending`: a quiet small-caps tag hugging the ZOE pill's top-right corner, outside the pill. */
@@ -427,7 +430,14 @@
 }
 
 .inception img { width: 110px; height: auto; border-radius: 6px; background: #fff; }
-.credly-badge { min-height: 10px; }
+
+/* The certification badge beside the name and title: shown 80 px tall, the file is twice that. */
+.ncp-badge { margin: 0 0 18px; }
+.ncp-badge a { display: flex; align-items: center; gap: 14px; color: inherit; text-decoration: none; }
+.ncp-badge a:hover figcaption { color: var(--ink); text-decoration: underline; }
+.ncp-badge a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 6px; }
+.ncp-badge img { display: block; width: auto; height: 80px; flex: none; }
+.ncp-badge figcaption { font-size: 14px; line-height: 1.35; color: var(--ink-soft); max-width: 18em; }
 
 /* Buttons and links. */
 .pill-link {
@@ -455,7 +465,49 @@
 .sec a:not(.pill-link),
 .modal a:not(.modal-x) { color: #9cc9ff; }
 
+/* Local Document Triage & Screening: one plain card under the grid. */
+/* The slim card directly under the stage: a heading and a line on the left, the four points on the right. */
+.sec-triage { padding: 28px 20px 40px; border-top: 0; }
+.wf-triage { margin: 0; padding: 20px 24px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 6px 36px; align-items: start; grid-template-rows: auto 1fr; }
+.wf-triage h3 { grid-column: 1; }
+.wf-triage p { grid-column: 1; max-width: 70ch; }
+.wf-triage .triage-list { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+@media (max-width: 759px) {
+  .wf-triage { grid-template-columns: minmax(0, 1fr); }
+  .wf-triage .triage-list { grid-column: 1; grid-row: auto; margin-top: 12px; }
+}
+.triage-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 15px; color: var(--ink-soft); }
+.triage-list li { position: relative; padding-left: 20px; line-height: 1.5; }
+.triage-list li::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
+/* The roadmap badge: the same small pill as the comparison's tags. */
+.road-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: 1px;
+  color: #cfe4ff;
+  background: rgba(95, 168, 255, 0.18);
+}
+
 /* Contact. */
+#contact .sec-h { margin-bottom: 22px; }
+.cta-main { margin: 0 0 28px; }
+
+.cta-big {
+  display: block;
+  padding: 22px 28px;
+  font-size: clamp(18px, 2.4vw, 23px);
+  font-weight: 650;
+  text-align: center;
+  box-shadow: 0 0 0 1px rgba(156, 201, 255, 0.4), 0 10px 40px rgba(45, 99, 200, 0.4);
+}
+
 .cta-rows { display: grid; gap: 10px; margin: 8px 0 36px; }
 
 .cta-row {
@@ -571,6 +623,7 @@
 @media (max-width: 699px) {
   /* Phones: the heading, the choices and the whole panel fit one screen (390 x 664). */
   #dataflow .sec-h { margin-bottom: 12px; }
+  #dataflow .flow-lede { margin: 0 0 4px; font-size: 14.5px; line-height: 1.45; }
   .flow-choose { gap: 8px; margin: 16px 0 12px; }
   .flow-choose .flow-pick { flex: 1 1 auto; padding: 9px 12px; text-align: center; }
   .flow-panel { padding: 10px 8px 8px; }
@@ -579,6 +632,18 @@
   /* The tally sits in the panel's top-right corner, beside the laptop, so the title keeps one line. */
   .flow-panel.is-risk { position: relative; }
   .flow-tally { position: absolute; top: 72px; right: 10px; padding: 2px 8px; font-size: 11px; }
+}
+
+/* Short phones (about 700 px tall or less): the comparison's heading, text, choices and the whole panel still fit one
+   screen. Layout only: smaller heading, tighter gaps, a shorter drawing; every word is unchanged. */
+@media (max-width: 699px) and (max-height: 700px) {
+  #dataflow .sec-h { margin-bottom: 6px; font-size: 22px; }
+  #dataflow .flow-lede { margin: 0 0 2px; font-size: 13.5px; line-height: 1.35; }
+  .flow-choose { gap: 8px; margin: 12px 0 8px; }
+  .flow-choose .flow-pick { padding: 7px 12px; }
+  .flow-panel { padding: 8px 6px 6px; }
+  .flow-panel figcaption { margin-bottom: 2px; }
+  .flow-panel .flow-svg { display: block; width: 90%; height: auto; margin: 0 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -596,7 +661,6 @@
   .wf-card:nth-child(5) { grid-column: auto; }
   .person-img { max-width: 260px; }
   .person-side { display: contents; }
-  .person .credly-badge { order: 2; }
   .form-2 { grid-template-columns: 1fr; }
   .sec { padding-left: 16px; padding-right: 16px; }
 }

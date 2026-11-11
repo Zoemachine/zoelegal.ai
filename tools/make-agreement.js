@@ -69,7 +69,7 @@ for (let para of part('## Part A — Agreement and Plan of Merger', '*End of Par
   blocks.push(['p', para, null, id]);
 }
 
-// ---------- The frontier AI's fix: the parent becomes a party ----------
+// ---------- The cloud AI's fix: the parent becomes a party ----------
 // Its additions are tracked insertions, shown in green: [block test, phrase] (no phrase: the whole block).
 // INS_A and INS_B bracket each insertion (characters the agreement never uses); hero.js turns them into spans.
 const INS_A = '\u27e6';
@@ -105,33 +105,30 @@ const clauses = lib.split('\n').map((r) => r.match(/^\d+\.\s+(\[BOB'S PICK\]\s+)
   .map((m) => ({ title: curly(m[2]), source: curly(m[3]), pick: !!m[1] }));
 if (clauses.length !== 10 || clauses.filter((c) => c.pick).length !== 1) throw new Error('expected ten clauses and one pick');
 
-// ---------- What the frontier AI sees: tokens for names and addresses, dummies for figures ----------
-// Tokens match the term sheet's (hero.js PARTIES); [ADDRESS_2] is the term sheet's premises.
+// ---------- What the cloud AI sees ----------
+// Names, people and addresses become Party n / Person n / Address n; every date becomes the one token
+// [Month_Day_Year]; dollar amounts and the other deal figures are never scrubbed (their mask is their own text),
+// so the cloud AI can do the arithmetic. Address 2 is the term sheet's premises. Kept in step with the table in
+// agreement.js, which the story reads (hero.js).
 const PII = [
-  ['Kestrel Robotics Inc.', '[ORG_1]'], ['KESTREL ROBOTICS INC.', '[ORG_1]'],
-  ['Harborline Trust Company', '[ORG_2]'],
-  ['Lakeshore Capital Partners LP', '[ORG_3]'],
-  ['Vantage Row Properties LLC', '[ORG_4]'],
-  ['Meridian Acquisition LLC', '[ORG_5]'], ['MERIDIAN ACQUISITION LLC', '[ORG_5]'],
-  ['Meridian Holdings LLC', '[ORG_6]'], ['MERIDIAN HOLDINGS LLC', '[ORG_6]'],
-  ['Dunmore Ketteridge LLP', '[ORG_7]'],
-  ['Corvane Ashby LLP', '[ORG_8]'],
-  ['Jane R. Okonkwo', '[PERSON_1]'],
-  ['Daniel Park', '[PERSON_2]'],
-  ['James “Jimmy” Calder', '[PERSON_3]'], ['James Calder', '[PERSON_3]'],
-  ['1400 Kestrel Lane, Brindlewick, ME', '[ADDRESS_1]'],
-  ['2200 Tallowmere Avenue, Suite 400, Port Halvering, NJ', '[ADDRESS_3]'],
-  ['310 Ferrowick Street, Oxbury Glen, MN', '[ADDRESS_4]'],
-  ['77 Pellimore Square, Sallowmere, NY', '[ADDRESS_5]'],
-  ['$45,000,000', '$18,200,000'], ['$2,750,000', '$1,960,000'], ['$3,400,000', '$2,150,000'],
-  ['$1,400,000', '$870,000'], ['$2,000,000', '$1,280,000'], ['$18,000,000', '$11,600,000'],
-  ['$24,000,000', '$15,300,000'], ['$22,000,000', '$13,900,000'], ['$337,500', '$136,500'],
-  ['$250,000', '$180,000'], ['$200,000', '$140,000'], ['$100,000', '$65,000'],
-  ['10,000,000', '7,500,000'], ['6,200,000', '4,750,000'], ['84 employees', '61 employees'],
-  ['November 6, 2026', 'August 21, 2026'], ['January 15, 2027', 'March 2, 2027'],
-  ['October 31, 2027', 'June 30, 2028'], ['October 31, 2028', 'June 30, 2029'],
-  ['December 31, 2024', 'March 31, 2024'], ['September 30, 2026', 'May 31, 2026'],
-  ['September 14, 2026', 'April 3, 2026'], ['January 1, 2023', 'July 1, 2022'],
+  ['Kestrel Robotics Inc.', 'Party 1'], ['KESTREL ROBOTICS INC.', 'Party 1'],
+  ['Harborline Trust Company', 'Party 2'], ['Lakeshore Capital Partners LP', 'Party 3'],
+  ['Vantage Row Properties LLC', 'Party 4'], ['Meridian Acquisition LLC', 'Party 5'],
+  ['MERIDIAN ACQUISITION LLC', 'Party 5'], ['Meridian Holdings LLC', 'Party 6'],
+  ['MERIDIAN HOLDINGS LLC', 'Party 6'], ['Dunmore Ketteridge LLP', 'Party 7'], ['Corvane Ashby LLP', 'Party 8'],
+  ['Jane R. Okonkwo', 'Person 1'], ['Daniel Park', 'Person 2'], ['James “Jimmy” Calder', 'Person 3'],
+  ['James Calder', 'Person 3'], ['1400 Kestrel Lane, Brindlewick, ME', 'Address 1'],
+  ['2200 Tallowmere Avenue, Suite 400, Port Halvering, NJ', 'Address 3'],
+  ['310 Ferrowick Street, Oxbury Glen, MN', 'Address 4'], ['77 Pellimore Square, Sallowmere, NY', 'Address 5'],
+  ['$45,000,000', '$45,000,000'], ['$18,000,000', '$18,000,000'], ['$24,000,000', '$24,000,000'],
+  ['$337,500', '$337,500'], ['$250,000', '$250,000'], ['$200,000', '$200,000'], ['$100,000', '$100,000'],
+  ['10,000,000', '10,000,000'], ['6,200,000', '6,200,000'], ['84 employees', '84 employees'],
+  ['88 Vantage Row, Suite 400', 'Address 2'], ['$4,500,000', '$4,500,000'], ['$6,000,000', '$6,000,000'],
+  ['$2,500,000', '$2,500,000'], ['$3,500,000', '$3,500,000'], ['$30,000,000', '$30,000,000'],
+  ['$750,000', '$750,000'], ['November 6, 2026', '[Month_Day_Year]'], ['January 15, 2027', '[Month_Day_Year]'],
+  ['December 31, 2024', '[Month_Day_Year]'], ['September 30, 2026', '[Month_Day_Year]'],
+  ['September 14, 2026', '[Month_Day_Year]'], ['January 1, 2023', '[Month_Day_Year]'],
+  ['June 30, 2027', '[Month_Day_Year]'], ['December 31, 2027', '[Month_Day_Year]'],
 ];
 const all = blocks.map((x) => `${x[2] || ''} ${x[1]}`).join('\n').split(INS_A).join('').split(INS_B).join('');
 PII.forEach(([real]) => { if (!all.includes(real)) throw new Error(`not in the agreement: ${real}`); });

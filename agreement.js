@@ -115,7 +115,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "p",
-   "“Escrow Amount” means $2,750,000.",
+   "“Escrow Amount” means $4,500,000.",
    null,
    null
   ],
@@ -259,7 +259,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "p",
-   "At the Closing, Parent will deposit the Escrow Amount of $2,750,000 with the Escrow Agent, to be held as security for claims under Article IX. Eighteen (18) months after the Closing Date, the Escrow Agent will release the remaining Escrow Amount, less pending claims, to the Paying Agent for the former holders of Company Shares. Amounts held for pending claims will be released when resolved.",
+   "At the Closing, Parent will deposit the Escrow Amount of $4,500,000 with the Escrow Agent, to be held as security for claims under Article IX. Eighteen (18) months after the Closing Date, the Escrow Agent will release the remaining Escrow Amount, less pending claims, to the Paying Agent for the former holders of Company Shares. Amounts held for pending claims will be released when resolved.",
    "Section 3.2 Escrow.",
    null
   ],
@@ -269,7 +269,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "sub",
-   "(a) Contingent Payments. The former holders of Company Shares may receive contingent payments of up to $3,400,000 in total (the “Earn-Out Payments”), based on Net Revenue during the period from the Closing Date through October 31, 2028 (the “Earn-Out Period”): (i) $1,400,000 if Net Revenue for the twelve months ending October 31, 2027 equals or exceeds $18,000,000; and (ii) $2,000,000 if Net Revenue for the twelve months ending October 31, 2028 equals or exceeds $24,000,000."
+   "(a) Contingent Payments. The former holders of Company Shares may receive contingent payments of up to $6,000,000 in total (the “Earn-Out Payments”), based on Net Revenue during the period from the Closing Date through December 31, 2027 (the “Earn-Out Period”): (i) $2,500,000 if Net Revenue for the twelve months ending June 30, 2027 equals or exceeds $18,000,000; and (ii) $3,500,000 if Net Revenue for the twelve months ending December 31, 2027 equals or exceeds $24,000,000."
   ],
   [
    "sub",
@@ -335,7 +335,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "p",
-   "The Disclosure Schedule lists each of the following (the “Material Contracts”): (a) each contract requiring payments above $250,000 in a year; (b) each contract with a top-ten customer or supplier; (c) the lease between Vantage Row Properties LLC, as landlord, and the Company, as tenant, for the premises at 1400 Kestrel Lane, Brindlewick, ME (the “Lease”); (d) each agreement restricting the Company from competing; (e) each agreement evidencing Indebtedness; and (f) each employment agreement above $200,000 a year, including that with Daniel Park, Chief Technology Officer. Each Material Contract is valid and in full force, and no party is in material breach.",
+   "The Disclosure Schedule lists each of the following (the “Material Contracts”): (a) each contract requiring payments above $250,000 in a year; (b) each contract with a top-ten customer or supplier; (c) the lease between Vantage Row Properties LLC, as landlord, and the Company, as tenant, for the premises at 88 Vantage Row, Suite 400 (the “Lease”); (d) each agreement restricting the Company from competing; (e) each agreement evidencing Indebtedness; and (f) each employment agreement above $200,000 a year, including that with Daniel Park, Chief Technology Officer. Each Material Contract is valid and in full force, and no party is in material breach.",
    "Section 4.6 Material Contracts.",
    null
   ],
@@ -401,7 +401,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "p",
-   "At the Closing, Parent will have funds sufficient to pay all amounts due. Parent has delivered to the Company a copy of a commitment letter from Lakeshore Capital Partners LP (the “Lender”) for senior debt financing of up to $22,000,000, and an equity commitment letter from its members for the balance. The obligations of Parent and Merger Sub are not conditioned on obtaining financing.",
+   "At the Closing, Parent will have funds sufficient to pay all amounts due. Parent has delivered to the Company a copy of a commitment letter from Lakeshore Capital Partners LP (the “Lender”) for senior debt financing of up to $30,000,000, and an equity commitment letter from its members for the balance. The obligations of Parent and Merger Sub are not conditioned on obtaining financing.",
    "Section 5.3 Financing.",
    null
   ],
@@ -449,7 +449,7 @@ window.ZOE_AGREEMENT = {
   ],
   [
    "p",
-   "For twelve (12) months after the Closing, Parent will cause the Surviving Corporation to provide continuing employees with base compensation no less favorable than before the Closing and substantially comparable benefits. Concurrently with signing, Daniel Park will enter into an employment and retention agreement with the Surviving Corporation, to take effect at the Closing (the “Key Employee Agreement”), with customary non-competition and non-solicitation covenants.",
+   "For twelve (12) months after the Closing, Parent will cause the Surviving Corporation to provide continuing employees with base compensation no less favorable than before the Closing and substantially comparable benefits. Concurrently with signing, Daniel Park will enter into an employment and retention agreement with the Surviving Corporation, with a $750,000 retention bonus, to take effect at the Closing (the “Key Employee Agreement”), with customary non-competition and non-solicitation covenants.",
    "Section 6.5 Employee Matters.",
    null
   ],
@@ -759,171 +759,179 @@ window.ZOE_AGREEMENT = {
  "pii": [
   [
    "Kestrel Robotics Inc.",
-   "[ORG_1]"
+   "Party 1"
   ],
   [
    "KESTREL ROBOTICS INC.",
-   "[ORG_1]"
+   "Party 1"
   ],
   [
    "Harborline Trust Company",
-   "[ORG_2]"
+   "Party 2"
   ],
   [
    "Lakeshore Capital Partners LP",
-   "[ORG_3]"
+   "Party 3"
   ],
   [
    "Vantage Row Properties LLC",
-   "[ORG_4]"
+   "Party 4"
   ],
   [
    "Meridian Acquisition LLC",
-   "[ORG_5]"
+   "Party 5"
   ],
   [
    "MERIDIAN ACQUISITION LLC",
-   "[ORG_5]"
+   "Party 5"
   ],
   [
    "Meridian Holdings LLC",
-   "[ORG_6]"
+   "Party 6"
   ],
   [
    "MERIDIAN HOLDINGS LLC",
-   "[ORG_6]"
+   "Party 6"
   ],
   [
    "Dunmore Ketteridge LLP",
-   "[ORG_7]"
+   "Party 7"
   ],
   [
    "Corvane Ashby LLP",
-   "[ORG_8]"
+   "Party 8"
   ],
   [
    "Jane R. Okonkwo",
-   "[PERSON_1]"
+   "Person 1"
   ],
   [
    "Daniel Park",
-   "[PERSON_2]"
+   "Person 2"
   ],
   [
    "James “Jimmy” Calder",
-   "[PERSON_3]"
+   "Person 3"
   ],
   [
    "James Calder",
-   "[PERSON_3]"
+   "Person 3"
   ],
   [
    "1400 Kestrel Lane, Brindlewick, ME",
-   "[ADDRESS_1]"
+   "Address 1"
   ],
   [
    "2200 Tallowmere Avenue, Suite 400, Port Halvering, NJ",
-   "[ADDRESS_3]"
+   "Address 3"
   ],
   [
    "310 Ferrowick Street, Oxbury Glen, MN",
-   "[ADDRESS_4]"
+   "Address 4"
   ],
   [
    "77 Pellimore Square, Sallowmere, NY",
-   "[ADDRESS_5]"
+   "Address 5"
   ],
   [
    "$45,000,000",
-   "$18,200,000"
-  ],
-  [
-   "$2,750,000",
-   "$1,960,000"
-  ],
-  [
-   "$3,400,000",
-   "$2,150,000"
-  ],
-  [
-   "$1,400,000",
-   "$870,000"
-  ],
-  [
-   "$2,000,000",
-   "$1,280,000"
+   "$45,000,000"
   ],
   [
    "$18,000,000",
-   "$11,600,000"
+   "$18,000,000"
   ],
   [
    "$24,000,000",
-   "$15,300,000"
-  ],
-  [
-   "$22,000,000",
-   "$13,900,000"
+   "$24,000,000"
   ],
   [
    "$337,500",
-   "$136,500"
+   "$337,500"
   ],
   [
    "$250,000",
-   "$180,000"
+   "$250,000"
   ],
   [
    "$200,000",
-   "$140,000"
+   "$200,000"
   ],
   [
    "$100,000",
-   "$65,000"
+   "$100,000"
   ],
   [
    "10,000,000",
-   "7,500,000"
+   "10,000,000"
   ],
   [
    "6,200,000",
-   "4,750,000"
+   "6,200,000"
   ],
   [
    "84 employees",
-   "61 employees"
+   "84 employees"
+  ],
+  [
+   "88 Vantage Row, Suite 400",
+   "Address 2"
+  ],
+  [
+   "$4,500,000",
+   "$4,500,000"
+  ],
+  [
+   "$6,000,000",
+   "$6,000,000"
+  ],
+  [
+   "$2,500,000",
+   "$2,500,000"
+  ],
+  [
+   "$3,500,000",
+   "$3,500,000"
+  ],
+  [
+   "$30,000,000",
+   "$30,000,000"
+  ],
+  [
+   "$750,000",
+   "$750,000"
   ],
   [
    "November 6, 2026",
-   "August 21, 2026"
+   "[Month_Day_Year]"
   ],
   [
    "January 15, 2027",
-   "March 2, 2027"
-  ],
-  [
-   "October 31, 2027",
-   "June 30, 2028"
-  ],
-  [
-   "October 31, 2028",
-   "June 30, 2029"
+   "[Month_Day_Year]"
   ],
   [
    "December 31, 2024",
-   "March 31, 2024"
+   "[Month_Day_Year]"
   ],
   [
    "September 30, 2026",
-   "May 31, 2026"
+   "[Month_Day_Year]"
   ],
   [
    "September 14, 2026",
-   "April 3, 2026"
+   "[Month_Day_Year]"
   ],
   [
    "January 1, 2023",
-   "July 1, 2022"
+   "[Month_Day_Year]"
+  ],
+  [
+   "June 30, 2027",
+   "[Month_Day_Year]"
+  ],
+  [
+   "December 31, 2027",
+   "[Month_Day_Year]"
   ]
  ]
 };

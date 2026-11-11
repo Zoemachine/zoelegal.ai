@@ -22,7 +22,7 @@
   // Boxes are [x, y, w, h]; a title may be two lines.
   const CAP = "Multiple hops. Every system past the router is one you don't control.";
   const POINT = 'A chain of AI vendors and subprocessors is a larger attack surface than traditional cloud software.';
-  const CLOUD_TITLE = "In a standard cloud AI, your client's file leaves your laptop, crosses your office router and your internet provider (ISP) to the vendor's cloud, which orchestrates it across confidentiality services (PII), a search index (RAG), frontier models (LLM), logging and evaluation, and additional subprocessors behind them: eleven attack surfaces, none of them under your control.";
+  const CLOUD_TITLE = "With standard cloud AI, your client's file leaves your laptop, crosses your office router and your internet provider (ISP) to the vendor's cloud, which orchestrates it across confidentiality services (PII), a search index (RAG), cloud AI models (LLM), logging and evaluation, and additional subprocessors behind them: eleven attack surfaces, none of them under your control.";
   const CLOUD = {
     wide: {
       view: [1200, 580],
@@ -36,7 +36,7 @@
       down: [
         { box: [812, 15, 304, 70], t: 'Confidentiality services (PII)', s: 'reads every name in your file' },
         { box: [812, 115, 304, 70], t: 'Search index (RAG)', s: 'your clauses, stored on their disk' },
-        { box: [812, 215, 304, 70], t: 'Frontier models (LLM)', s: 'generate from your text' },
+        { box: [812, 215, 304, 70], t: 'Cloud AI models (LLM)', s: 'generate from your text' },
         { box: [812, 315, 304, 70], t: 'Logging & evaluation', s: 'more copies, more vendors' },
         { box: [812, 415, 304, 70], t: 'Additional subprocessors', faded: true },
       ],
@@ -60,7 +60,7 @@
       down: [
         { box: [160, 80, 234, 46], t: 'Confidentiality services (PII)', s: 'reads every name in your file' },
         { box: [160, 138, 234, 46], t: 'Search index (RAG)', s: 'your clauses, on their disk' },
-        { box: [160, 196, 234, 46], t: 'Frontier models (LLM)', s: 'generate from your text' },
+        { box: [160, 196, 234, 46], t: 'Cloud AI models (LLM)', s: 'generate from your text' },
         { box: [160, 254, 234, 46], t: 'Logging & evaluation', s: 'more copies, more vendors' },
         { box: [160, 312, 234, 36], t: 'Additional subprocessors', faded: true },
       ],
@@ -89,11 +89,11 @@
       ],
       line: [904, 241, 994, 241],
       cloud: [1066, 241],
-      blurb: ['frontier model, or a high-end', "model on the firm's own server"],
+      blurb: ['cloud AI, or a high-end', "model on the firm's own server"],
       caption: [530, 486, 'middle'],
     },
     tall: {
-      view: [400, 552],
+      view: [400, 584],      // room for the three caption lines under the cloud
       badge: [57, 4, 286, 24],
       laptop: [16, 36, 368, 310],
       base: [0, 352, 400, 12],
@@ -107,7 +107,7 @@
       ],
       line: [200, 368, 200, 398],
       cloud: [200, 436],
-      blurb: ['frontier model, or a high-end', "model on the firm's own server"],
+      blurb: ['cloud AI, or a high-end', "model on the firm's own server"],
       caption: [200, 520, 'middle'],
     },
   };
@@ -194,7 +194,7 @@
   function drawZoe(L) {
     const [W, H] = L.view;
     const c = mid(L.core);
-    let out = `<svg class="flow-svg${W < H ? ' is-tall' : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="zoeTitle"><title id="zoeTitle">With ZOE AI, everything runs inside your laptop and the document never moves. The one thing that can cross to the frontier model, or to a high-end model on the firm's own server, is a masked question.</title>`;
+    let out = `<svg class="flow-svg${W < H ? ' is-tall' : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="zoeTitle"><title id="zoeTitle">With ZOE AI, everything runs inside your laptop and the document never moves. The one thing that can cross to cloud AI, or to a high-end model on the firm's own server, is scrubbed text, and only when you choose to use cloud AI.</title>`;
     const bd = L.badge;
     out += `<rect class="fl-pill is-zoe" x="${bd[0]}" y="${bd[1]}" width="${bd[2]}" height="${bd[3]}" rx="${bd[3] / 2}"/><text class="fl-badge is-zoe" x="${bd[0] + bd[2] / 2}" y="${bd[1] + bd[3] / 2 + 4}">Everything below runs on this machine</text>`;
     const lp = L.laptop;
@@ -210,7 +210,7 @@
       out += `<rect class="fl-lit" data-i="${i}" x="${p.box[0]}" y="${p.box[1]}" width="${p.box[2]}" height="${p.box[3]}" rx="14"/>`;
     });
     const co = L.core;
-    out += `<rect class="fl-core" x="${co[0]}" y="${co[1]}" width="${co[2]}" height="${co[3]}" rx="15"/><text class="fl-ot" x="${c.x}" y="${c.y - 2}">ZOE</text><text class="fl-os" x="${c.x}" y="${c.y + 18}">on your laptop</text>`;
+    out += `<rect class="fl-core" x="${co[0]}" y="${co[1]}" width="${co[2]}" height="${co[3]}" rx="15"/><text class="fl-ot" x="${c.x}" y="${c.y - 2}">ZOE AI</text><text class="fl-os" x="${c.x}" y="${c.y + 18}">on your laptop</text>`;
     L.parts.forEach((p, i) => { out += `<circle class="mv-bit mv-bit-${i}" r="6"/>`; });
     out += `<g transform="translate(${L.doc[0]} ${L.doc[1]})">${docGlyph('fl-stay')}<text class="fl-ns" y="30">your document</text></g>`;
     const ln = L.line;
@@ -219,10 +219,14 @@
     out += `<path class="fl-cloud" transform="translate(${kx - 66} ${ky - 50})" d="M32 62 a26 26 0 0 1 4 -51 a34 34 0 0 1 63 8 a22 22 0 0 1 -3 43 z"/>`;
     const bx = Math.min(kx, W - 106);
     L.blurb.forEach((t, i) => { out += `<text class="fl-ns" x="${bx}" y="${ky + 34 + i * 17}">${esc(t)}</text>`; });
-    out += `<g class="mv-packet"><rect x="-62" y="-13" width="124" height="26" rx="13"/><text y="5">masked question</text></g>`;
+    out += `<g class="mv-packet"><rect x="-62" y="-13" width="124" height="26" rx="13"/><text y="5">scrubbed text</text></g>`;
     const [cx, cy] = L.caption;
-    out += `<g class="fl-captions"><text class="fl-cap is-zoe" x="${cx}" y="${cy}">Zero hops. The document never leaves this box.</text>` +
-      `<text class="fl-cap2" x="${cx}" y="${cy + 26}">What can travel is a masked question you approved.</text></g></svg>`;
+    // On a phone the first caption takes two lines, so it keeps its size.
+    const cap1 = W < H
+      ? `<text class="fl-cap is-zoe" x="${cx}" y="${cy - 6}">In Lockdown nothing leaves this box.</text><text class="fl-cap is-zoe" x="${cx}" y="${cy + 17}">In Hybrid only scrubbed text does.</text>`
+      : `<text class="fl-cap is-zoe" x="${cx}" y="${cy}">In Lockdown nothing leaves this box. In Hybrid only scrubbed text does.</text>`;
+    out += `<g class="fl-captions">${cap1}` +
+      `<text class="fl-cap2" x="${cx}" y="${cy + (W < H ? 42 : 26)}">And only when you choose to use cloud AI.</text></g></svg>`;
     return out;
   }
 
@@ -322,7 +326,7 @@
         { offset: t0 + 0.13, opacity: 0 }, { offset: 1, opacity: 0 },
       ]);
     });
-    // The one thing that crosses the dotted line: a small masked question.
+    // The one thing that crosses the dotted line: a little scrubbed text.
     const [x1, y1, x2, y2] = L.line;
     const from = { x: x1, y: y1 };
     const to = { x: x2 + (x2 - x1) * 0.25, y: y2 + (y2 - y1) * 0.25 };

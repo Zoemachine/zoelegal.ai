@@ -14,6 +14,8 @@ module.exports = defineConfig({
   use: {
     baseURL: process.env.BASE_URL || 'http://127.0.0.1:8000',
     browserName: 'chromium',
+    // PW_CHANNEL=chrome runs the tests in an installed Chrome instead of Playwright's own download.
+    channel: process.env.PW_CHANNEL || undefined,
   },
   projects: [
     {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book a Tech Demo - ZOE AI&trade;</title>
+    <title>Book a Technical Demo - ZOE AI</title>
     <link rel="stylesheet" href="pages.css">
     <link rel="icon" type="image/png" href="assets/favicon-96.png">
 </head>
@@ -15,16 +15,47 @@
                 <span class="wordmark logo-img"><img src="assets/site/wordmark-word.png" width="466" height="238" alt="ZOE AI"><img class="wordmark-o" src="assets/site/wordmark-o.png" width="168" height="168" alt="" aria-hidden="true"></span>
             </a>
             <div class="nav-links">
-                <a href="index.html#founder" class="nav-link">About</a>
-                <a href="index.html#advisory" class="nav-link">Advisory Board</a>
-                <a href="book-demo.html" class="nav-link nav-link-cta">Book a Demo</a>
-                <a href="index.html#contact" class="nav-link">Contact</a>
+                <div class="nav-menu">
+                    <button class="nav-link nav-abilities" type="button" aria-expanded="false" aria-controls="nav-ability-list">Product abilities<svg class="nav-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.5 6 6l4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <ul class="nav-ability-list" id="nav-ability-list" hidden>
+                        <li><a href="index.html#wf-word" data-ability="word">Full Word Support</a></li>
+                        <li><a href="index.html#wf-templates" data-ability="templates">Templates &amp; Clauses</a></li>
+                        <li><a href="index.html#wf-diligence" data-ability="diligence">Diligence &amp; Local Discovery</a></li>
+                        <li><a href="index.html#wf-privacy" data-ability="privacy">Privacy Scrub &amp; Cloud Processing</a></li>
+                    </ul>
+                </div>
+                <a href="index.html#dataflow" class="nav-link">Secure architecture</a>
+                <a href="index.html#why" class="nav-link">Advantages</a>
+                <a href="index.html#founder" class="nav-link">Leadership</a>
+                <a href="book-demo.html" class="nav-link nav-link-book" aria-current="page">Book a demo</a>
             </div>
+            <script>
+                // "Product abilities" opens a list of the four; it closes on Escape, on a click elsewhere and after a choice.
+                (function () {
+                    var btn = document.querySelector('.nav-abilities');
+                    var list = document.getElementById('nav-ability-list');
+                    function set(open) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); list.hidden = !open; }
+                    btn.addEventListener('click', function () { set(list.hidden); });
+                    list.addEventListener('click', function (e) { if (e.target.closest('a')) set(false); });
+                    document.addEventListener('click', function (e) { if (!list.hidden && !btn.parentNode.contains(e.target)) set(false); });
+                    document.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape') { var inList = list.contains(document.activeElement); set(false); if (inList) btn.focus(); }
+                        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && btn.parentNode.contains(document.activeElement)) {
+                            var items = Array.prototype.slice.call(list.querySelectorAll('a'));
+                            if (list.hidden) set(true);
+                            var i = items.indexOf(document.activeElement);
+                            var n = e.key === 'ArrowDown' ? (i < 0 ? 0 : (i + 1) % items.length) : (i <= 0 ? items.length - 1 : i - 1);
+                            e.preventDefault();
+                            items[n].focus();
+                        }
+                    });
+                })();
+            </script>
         </div>
     </nav>
 
     <section class="page-hero">
-        <h1 class="page-hero-title">Book a Tech Demo</h1>
+        <h1 class="page-hero-title">Book a Technical Demo</h1>
         <p class="page-hero-subtitle">See ZOE AI in action. Select a date and time below.</p>
     </section>
 
@@ -125,7 +156,8 @@
                     <a href="index.html#terms" class="footer-link">Terms of Use</a>
                 </div>
                 <div class="footer-disclaimer">
-                    <p>Hardware images and designs are preliminary concepts. All specifications are subject to change based on final engineering determinations, hardware availability and partnerships. ZOE AI is not affiliated with NVIDIA.</p>
+                    <p>Product images and the interactive demonstration are illustrative. Features and specifications are subject to change.</p>
+                    <p>NVIDIA and the NVIDIA logo are registered trademarks of NVIDIA Corporation in the U.S. and other countries. Other product names and logos shown are the trademarks of their respective owners; ZOE AI is not affiliated with or endorsed by them.</p>
                 </div>
                 <div class="footer-copyright">
                     <p>&copy; 2026 ZOE AI&trade;. All rights reserved.</p>
