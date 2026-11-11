@@ -1,6 +1,6 @@
 // ZOE screens: a Mac desktop (menu bar, Word with the ZOE pane, Safari with the ZOE cockpit) that mounts into any
 // container. Drawn at a fixed virtual width and scaled with one transform. No dependencies, no network.
-// Every name, figure and document below is fictional. Contract: rework/CONTRACT_screens.md.
+// Every name, figure and document below is fictional.
 (function () {
   'use strict';
 
@@ -351,7 +351,7 @@
       return { nav: 'diligence', matter: d.matter, html: `<div class="zs-pg zs-wide"><div class="zs-crumbs">${esc(d.matter)}</div><h1 class="zs-ph1">Diligence</h1><div class="zs-psub">Find the documents that answer a diligence question: who signed, who is a party, the type, the date, the section and the governing law.</div>` +
         `<div class="zs-scopechips">Searching in <span class="zs-chip zs-b zs-sm">${I.check}${esc(d.matter)}</span><span class="zs-chip zs-w zs-sm">+ Add a matter</span><span class="zs-chip zs-w zs-sm">All matters</span></div>` +
         `<div class="zs-dsearch"><div class="zs-in${q ? ' is-filled is-focus' : ''}">${I.search}${q ? esc(q) : 'Words to look for, or open a card below'}</div><span class="zs-cbtn pri">${I.search}Search</span></div>` +
-        `<div class="zs-prec"><span class="zs-sw"></span><b>Precision</b><small>ON</small><span>Precision is on: answers also use the extra reading stored for each document (who signed, who is a party and in what role, the name and the date).</span></div>` +
+        `<div class="zs-prec"><span class="zs-sw"></span><b>Precision</b><small>ON</small><span>Precision is on: answers also use who signed, who is a party and in what role.</span></div>` +
         `<div class="zs-flabel">Filters <small>${Object.keys(set).length ? Object.keys(set).length + ' set' : 'No filter is set. Open a card to set one.'}</small></div><div class="zs-fgrid">${cards}</div>${hits}</div>` };
     },
     scrubbed(d, ctx) {
@@ -375,7 +375,7 @@
       d = Object.assign({}, COCK_DEFAULTS.signatures, d);
       const rows = (d.rows || []).map((r) => `<tr><td>${esc(r.party)}</td><td><div style="font-size:10.5px;font-weight:600;letter-spacing:0.03em">${esc(r.role)}</div>${r.status === 'corroborated' ? chip('g sm', 'corroborated') : chip('a sm', r.status)}</td><td>${esc(r.signatory)}</td><td>${esc(r.srole)}</td><td class="zs-chain">${(r.chain || []).map((c, i, a) => (i === a.length - 1 ? `<b>${esc(c)}</b>` : `${esc(c)} &gt;&gt;&gt; `)).join('')}</td></tr>`).join('');
       return { nav: 'matters', html: `<div class="zs-pg zs-wide">${docHeader(d, 'signatures', ctx.matter)}<div class="zs-card2"><div style="font-weight:600;font-size:13.5px;margin-bottom:3px">Who signed, for whom, under what authority</div>` +
-        `<div class="zs-ds" style="margin-bottom:10px">Read from the signature pages and the opening paragraph, on this computer. Each line is corroborated by the text or marked for you to verify on the page.</div>` +
+        `<div class="zs-ds" style="margin-bottom:10px">Read on this computer. Each line is checked against the document, or marked for you to verify on the page.</div>` +
         `<div class="zs-tbl zs-sigt"><table><thead><tr><th>party</th><th>party role</th><th>signatory</th><th>signatory role</th><th>chain of authority</th></tr></thead><tbody>${rows}</tbody></table></div>` +
         `<div class="zs-ds" style="margin:10px 0 0">“not stated in the document” means the page does not say it. The chain of authority reads signatory &gt;&gt;&gt; (intermediate &gt;&gt;&gt;) party.</div></div></div>` };
     },
@@ -441,7 +441,7 @@
       </div>
       <div class="zs-win zs-safari">
         <div class="zs-stool"><span class="zs-lights"><i></i><i></i><i></i></span><span style="margin-left:14px">${I.sidebar}</span><span class="zs-navg"><span>${I.back}</span><span class="is-dim">${I.fwd}</span></span>
-          <div class="zs-addr"><span class="zs-fav">Z</span><span>127.0.0.1:8790</span><span class="zs-reload">${I.refresh}</span></div>
+          <div class="zs-addr"><span class="zs-fav">Z</span><span>localhost</span><span class="zs-reload">${I.refresh}</span></div>
           <span class="zs-tright">${I.share}${I.plus}${I.tabs}</span></div>
         <div class="zs-ck">
           <aside class="zs-side"><div class="zs-brand"><span class="zs-bmark">Z</span><div><div class="zs-bname">ZOE</div><div class="zs-bsub">Legal document workspace</div></div></div>
@@ -590,7 +590,7 @@
       const tok = ++scrollTok;
       let y = target;
       if (target && target.nodeType === 1) {
-        // Layout offsets (virtual px), so a transform on any ancestor (the hero's camera) cannot skew the target.
+        // Layout offsets (virtual px), so a transform on any ancestor cannot skew the target.
         let top = 0, n = target;
         while (n && n !== canvas && canvas.contains(n)) { top += n.offsetTop; n = n.offsetParent; }
         y = top - canvas.clientHeight * 0.25;

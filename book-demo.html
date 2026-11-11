@@ -176,7 +176,7 @@
         const MONTHS = ['January','February','March','April','May','June',
                         'July','August','September','October','November','December'];
 
-        // No demos before this date (William, 2026-10-23); the calendar opens on its month.
+        // No demos before this date; the calendar opens on its month.
         const FIRST_DEMO_DAY = new Date(2026, 11, 1);
         const earliest = () => {
             const t = new Date();
@@ -353,7 +353,7 @@
 
         // --- Form Submission ---
         // The booking goes to info@zoemachine.com through formsubmit.co, the relay the home page's
-        // contact form uses. No NDA step (William, 2026-10-23).
+        // contact form uses. There is no NDA step.
         const BOOKING_ENDPOINT = 'https://formsubmit.co/ajax/info@zoemachine.com';
         document.getElementById('booking-form').addEventListener('submit', async (e) => {
             e.preventDefault();

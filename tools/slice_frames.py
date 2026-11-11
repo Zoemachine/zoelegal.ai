@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-slice_frames.py — turn the Kling laptop-opening clip into the hero's frame set.
+slice_frames.py — turn the laptop-opening clip into the hero's frame set.
 
-Step 0 of the Opus builder brief (see 02_Opus_Builder_Brief.md). Produces:
+Produces:
 
   assets/frames/1920/lid_01.webp … lid_45.webp   desktop set (1920 wide)
   assets/frames/1280/lid_01.webp … lid_45.webp   mobile set  (1280 wide)
@@ -11,10 +11,10 @@ Step 0 of the Opus builder brief (see 02_Opus_Builder_Brief.md). Produces:
   assets/poster-closed.jpg                       frame 1 at 1600 wide (og:image / no-JS)
   assets/frames/contact_sheet.png                9x5 sheet of the 45 frames for a visual check
 
-Measured on the clip kling_20261017_VIDEO_Static_loc_2012_0.mp4 (1920x1080, 24 fps, 20.04 s):
+Measured on the source clip (1920x1080, 24 fps, 20.04 s):
   lid motion runs t = 3.75 s -> 11.50 s (frame-difference measurement, 2026-10-19);
   the baked "ZOE AI" logo drifts ~10 px over the motion, so it is kept, not masked;
-  the Kling watermark sits bottom-right (x > 84 %, y > 90 %) and is painted black.
+  the clip's corner mark sits bottom-right (x > 84 %, y > 90 %) and is painted black.
 
 Usage:
   python tools/slice_frames.py --video "assets/laptop_open_raw.mp4" --out assets

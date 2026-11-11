@@ -498,9 +498,9 @@ p.zs-ins::before, div.zs-ins::before { content: ""; position: absolute; left: -2
 .zs-w-s .zs-menus span { padding: 3px 7px; }
 .zs-w-xs .zs-cdate { display: none; }
 
-/* Tracked changes win over the document's own text rules and any story styling inside the page, whatever the
+/* Tracked changes win over the document's own text rules and any styling the host page adds inside it, whatever the
    stylesheet order: every piece of text in an insertion is Word's insertion red, every piece in a deletion is
-   red and struck. (The doubled .zs-root raises the weight without naming any other lane's class.) */
+   red and struck. (The doubled .zs-root raises the weight without naming any class outside this file.) */
 .zs-root.zs-root .zs-page .zs-ins,
 .zs-root.zs-root .zs-page .zs-ins * { color: #c00000; text-decoration-color: #c00000; }
 .zs-root.zs-root .zs-page .zs-ins { text-decoration-line: underline; }

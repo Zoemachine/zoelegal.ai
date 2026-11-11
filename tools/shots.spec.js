@@ -50,28 +50,28 @@ const RESTRICTED = fs.existsSync(RESTRICTED_FILE) ? JSON.parse(fs.readFileSync(R
 // The hero's one device: allowed in the hero's Act I text (its no-JS line), forbidden below the hero and on the other pages.
 const PHONE = JSON.parse(Buffer.from('eyJyZSI6ICJcXGJwaG9uZXM/XFxiIiwgImFsbG93ZWRUZXh0IjogWyJ0aGUgcGhvbmUgaGFuZHMgaXQgdG8gdGhlIGxhcHRvcCJdfQ==', 'base64').toString());
 // Product names: the four frontier products under the cloud, in hero.js's PROVIDERS block and nowhere else.
-const PRODUCTS = JSON.parse(Buffer.from('eyJhbGxvd2VkSW4iOiAiaGVyby5qcyIsICJmcm9tIjogIi8vIFRoZSBjbG91ZCBBSSBtb2RlbHMgbmFtZWQgdW5kZXIgdGhlIGNsb3VkIiwgInRvIjogIl07IiwgImFsbG93ZWQiOiBbIkNoYXRHUFQiLCAiQ2xhdWRlIiwgIkdlbWluaSIsICJDb3BpbG90Il0sICJmb3JiaWRkZW4iOiBbIlxcYkdQVC0/XFxkIiwgIlxcYkxsYW1hXFxiIiwgIlxcYk1pc3RyYWxcXGIiLCAiXFxiR3Jva1xcYiIsICJcXGJCYXJkXFxiIiwgIlxcYlNvbm5ldFxcYiIsICJcXGJPcHVzXFxiIiwgIlxcYkhhaWt1XFxiIiwgIlxcYkZhYmxlXFxiIiwgIlxcYkRlZXBTZWVrXFxiIiwgIlxcYlF3ZW5cXGIiXX0=', 'base64').toString());
-// Allowed in the comparison's Standard cloud AI panel and nowhere else (William, 2026-10-22): its layout block
+const PRODUCTS = JSON.parse(Buffer.from('eyJhbGxvd2VkSW4iOiAiaGVyby5qcyIsICJmcm9tIjogIi8vIFRoZSBjbG91ZCBBSSBtb2RlbHMgbmFtZWQgdW5kZXIgdGhlIGNsb3VkIiwgInRvIjogIl07IiwgImFsbG93ZWQiOiBbIkNoYXRHUFQiLCAiQ2xhdWRlIiwgIkdlbWluaSIsICJDb3BpbG90Il0sICJmb3JiaWRkZW4iOiBbIlxcYkdQVC0/XFxkIiwgIlxcYkxsYW1hXFxiIiwgIlxcYk1pc3RyYWxcXGIiLCAiXFxiR3Jva1xcYiIsICJcXGJCYXJkXFxiIiwgIlxcYkRlZXBTZWVrXFxiIl19', 'base64').toString());
+// Allowed in the comparison's Standard cloud AI panel and nowhere else: its layout block
 // in compare.js, from PANEL_FROM to PANEL_TO, is the one place they may appear.
 const PANEL_ONLY = JSON.parse(Buffer.from('W3sicmUiOiAiXFxiUkFHXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAiXFxiTExNXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAiXFxiSVNQXFxiIiwgImNzIjogdHJ1ZX0sIHsicmUiOiAic3VicHJvY2Vzc29yIiwgImNzIjogZmFsc2V9XQ==', 'base64').toString());
 const PANEL_FROM = '// Standard cloud AI: the chain';
 const PANEL_TO = 'const ZOE = {';
-// Round six: the clause is a plain insertion (Section 9.6, after Article IX's last section); nothing is ever struck.
+// The clause is a plain insertion (Section 9.6, after Article IX's last section); nothing is ever struck.
 const CLAUSE_TEXT = 'Section 9.6 Knowledge; No Sandbagging. Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub\'s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.';
 const LINE_28 = "Applying the review's change: the parent joins as a party and makes the buyer's representations and warranties alongside its subsidiary.";
-// Round five: dates are scrubbed to one token (and only while scrubbed); dollar amounts are never touched or highlighted.
+// Dates are scrubbed to one token (and only while scrubbed); dollar amounts are never touched or highlighted.
 const DATE_TOKEN = '[Month_Day_Year]';
 const REAL_DATES = ['November 6, 2026', 'January 15, 2027', 'December 31, 2027'];
 const AMOUNT_RE = /\$\d[\d,]*/g;
 const SITE_FILES = ['index.html', 'styles.css', 'hero.js', 'agreement.js', 'compare.js', 'drawer.css', 'nav.css', 'pages.css', 'book-demo.html', 'nda.html',
   'tools/playwright.config.js', 'tools/make-site-images.js', 'tools/make-agreement.js', 'tools/record-gif.js'];
-// Below the hero, in order (William, 2026-10-21): the comparison first, ZOE Servers removed.
+// Below the hero, in order: the comparison first.
 const SECTIONS = ['triage', 'dataflow', 'evidence', 'why', 'how', 'founder', 'advisory', 'contact', 'site-footer'];
 
 // All-caps words allowed on screen: AI and PII, plus names, mask tokens and emphasis that are not acronyms.
 const CAPS_OK = new Set(['AI', 'PII', 'ZOE', 'LLC', 'LP', 'EIN', 'ORG', 'PERSON', 'ADDRESS', 'ON', 'OFF', 'NO',
   'THEIR', 'OFFICE', 'MINUTES', 'TERM', 'SHEET', 'MASKED', 'INFORMATION', 'MATTER',
-  'ZE', 'ZEAI', 'IP', 'SCRUBBED', 'ID']); // ZE / ZEAI: the Z and the E either side of the turning O in ZOE's mark, and the "AI" under it, read as one run; IP: William's subhead ("law firm IP"); ID: "ID numbers" (line 7)
+  'ZE', 'ZEAI', 'IP', 'SCRUBBED', 'ID']); // ZE / ZEAI: the Z and the E either side of the turning O in ZOE's mark, and the "AI" under it, read as one run; IP: the subhead ("law firm IP"); ID: "ID numbers" (line 7)
 
 async function open(page) {
   await page.goto('/');
@@ -180,7 +180,7 @@ async function openLid(page) {
 // The laptop is open and the work has begun: Act III (the skip control appears here).
 const waitWorking = (page, timeout = 15000) => page.waitForFunction(() => window.__zoeHero.act >= 3, null, { timeout });
 
-// Samples the document and the Word window every 100 ms for the whole story (round six): struck text and "[Reserved",
+// Samples the document and the Word window every 100 ms for the whole story: struck text and "[Reserved",
 // the clause's text and whether it is in Word's window, and whether the ZOE pane is open inside the Word window.
 async function startWatch(page) {
   await page.evaluate(() => {
@@ -270,7 +270,7 @@ test('restricted words: none in the page, CSS, JS or comments', async ({}, info)
     });
   }
   expect(hits).toEqual([]);
-  // "SPAC" names the wrong kind of deal for the demo (William, 2026-10-23): the agreement is a merger.
+  // "SPAC" names the wrong kind of deal for the demo: the agreement is a merger.
   // The founder's biography, below the hero, describes his own practice and is not part of the demo.
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const demo = [html.slice(0, html.indexOf('<!-- ============ Below the hero ============ -->')),
@@ -627,7 +627,7 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   expect(sheet.hl.filter((t) => /\$\d/.test(t))).toEqual([]);
   expect(await page.locator('.screen .zs-page [data-k]').evaluateAll((els) => els.filter((e) => /\$\d/.test(e.textContent)).length)).toBe(0);
   await shot(page, info, 'act3-identified');
-  // The skip control is there from here on, with William's words.
+  // The skip control is there from here on, with its label.
   await expect(page.locator('.skip-step')).toHaveClass(/is-in/);
   await expect(page.locator('.skip-step')).toHaveText('Skip introductory illustration');
   // The order of the lines, and the Wi-Fi: OFF before the first ZOE line; no scrub line yet.
@@ -683,7 +683,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   // Beat 3: Safari and the cockpit: the vault, then the firm's templates, all with the Wi-Fi OFF.
   await said(page, 'Searching 35,263 vault files');
   await page.waitForFunction(() => /^Safari File Edit View History Bookmarks Window Help/.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
-  expect(await screenText(page)).toContain('127.0.0.1:8790');
+  expect(await screenText(page)).toContain('localhost');
   expect(await screenText(page)).toContain('Matters');
   await said(page, 'Found 128 files on this client in your vault.');
   await said(page, 'Searching 2,500 of your');
@@ -1059,7 +1059,7 @@ test('skip: hidden until the laptop works; "Skip introductory illustration" leav
     && getComputedStyle(e).opacity === '0' && getComputedStyle(e).visibility === 'hidden');
   await open(page);
   const btn = page.locator('.skip-step');
-  // William's words are its label (no other accessible name).
+  // Its visible words are its label (no other accessible name).
   await expect(btn).toHaveText('Skip introductory illustration');
   expect(await btn.getAttribute('aria-label')).toBeNull();
   // Acts I and II, past the old 10 s mark: no skip.
@@ -1784,7 +1784,7 @@ test('after the introduction: the headline, the subhead, the four abilities besi
     expect(paras.map((t) => t.replace(/\u2019/g, "'").trim()), `${a.id} text`).toEqual(a.text);
   }
   await expect(page.locator('.ability[data-id="word"] .ab-next')).toHaveText(/Next: Templates & Clauses/);
-  // Round five: the old names and the old phrase appear nowhere on the page.
+  // The old names and the old phrase appear nowhere on the page.
   const abText = await page.locator('.abilities').textContent();
   ['Drafting in Word', 'Corporate Diligence', 'almost no latency'].forEach((t) => expect(abText).not.toContain(t));
   // The laptop's screen sits inside the laptop: rounded and clipped, inside the viewport's width.
@@ -1975,7 +1975,7 @@ test('deep links: the navigation shows, the page is unlocked, and the section he
   expect(errors).toEqual([]);
 });
 
-// Round five: the badge, no request to Credly, the one name, the bracket scan, and the Privacy picture.
+// The badge, no request to Credly, the one name, the bracket scan, and the Privacy picture.
 test('the certification badge: one image beside the name, one link to its Credly page, no Credly box, no Credly request', async ({ page }, info) => {
   test.setTimeout(90000);
   const credly = [];
@@ -2032,7 +2032,7 @@ test('one name: ZOE AI wherever a visitor can read it (the product\'s own labels
   await postPage(page);
   const scan = () => page.evaluate(() => {
     const BARE = /\bZOE\b(?!\s+AI)|\bZoe\b/;
-    // The real product's own labels, as drawn inside its screens (Lane A's list); everything else must say ZOE AI.
+    // The real product's own labels, as drawn inside its screens (the screens' own labels); everything else must say ZOE AI.
     const OWN = [/^ZOE$/, /^Ask ZOE to find or check something$/i, /As you type a name, ZOE offers the names it knows/, /^ZOE is running$/,
       /Describe what you need\. ZOE finds the templates that fit/, /^ZOE read your search as$/i, /^How ZOE connects, and when it starts work on a new document\.$/];
     const hits = [];
