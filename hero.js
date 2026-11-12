@@ -8,8 +8,8 @@ const ANALYTICS_ENDPOINT = '';
 // ---------- Story content: every name and line in one place ----------
 // All parties, numbers, addresses and dates are invented.
 // The scrub: names, people and addresses become "Party n" / "Person n" / "Address n"; every date becomes the one
-// token [Month_Day_Year]; identifier numbers get other numbers. Dollar amounts are never scrubbed (their mask is
-// the real figure) and never highlighted: the cloud AI needs them to do the arithmetic.
+// token [Month_Day_Year]; an identifier number (the EIN, the escrow account) shows as another number of the same
+// shape. Dollar amounts are never scrubbed (their mask is the real figure) and never highlighted.
 const PARTIES = {
   seller:    { real: 'Kestrel Robotics Inc.',          mask: 'Party 1' },
   escrowCo:  { real: 'Harborline Trust Company',       mask: 'Party 2' },
@@ -401,7 +401,7 @@ function track(event, data) {
         if (r.cancelled) { reject(new Cancelled()); return; }
         const seg = segs[i];
         if (!seg) { resolve(); return; }
-        // Tokens land whole, the way the product shows them.
+        // Tokens land whole.
         if (seg.s.cls.startsWith('pii')) { seg.span.textContent = seg.s.text; c = seg.s.text.length; }
         else { c += 1; seg.span.textContent = seg.s.text.slice(0, c); }
         if (stripMode === 'centre') placeStrip();
@@ -1210,7 +1210,7 @@ function track(event, data) {
     if (gestureNow && gestureNow.name === 'phone') animate($('.phone-body', phone), [{ transform: 'translateY(0)' }, { transform: 'translateY(-8px)' }, { transform: 'translateY(0)' }], { duration: 360, fill: 'none' });
   });
 
-  // ---------- Act II: the lid (Phase 1 scrub) ----------
+  // ---------- Act II: the lid ----------
 
   const frames = new Array(FRAMES).fill(null);
   let settled = 0;
@@ -1549,9 +1549,9 @@ function track(event, data) {
   const ZOOM_DRAFT = 120;    // the draft running past
   const ZOOM_CLAUSE = 130;   // the clause landing, and the fix
   let desk = null;
-  // Every size shows the same picture (William, round six, X5 and X6): the Mac window with Word and the ZOE
-  // pane open on the right, the whole time. A phone draws that same desk scaled down to its laptop's
-  // screen, at the desktop's zoom; small text is accepted ("They get the picture").
+  // Every size shows the same picture: the Mac window with Word and the ZOE pane open on the right, the
+  // whole time. A phone draws that same desk scaled down to its laptop's screen, at the desktop's zoom;
+  // small text is accepted.
   const POST_DESK_W = 1100;  // after the introduction: the laptop is drawn smaller
   function readingLayout(on, zoom) {
     desk.word.setPaneOpen(true);
@@ -1988,7 +1988,7 @@ function track(event, data) {
   // ---------- The clause and the fix, in the page ----------
 
   // § 9.6 goes in as a new section at the end of Article IX (after § 9.5), a red tracked insertion, line by
-  // line. Nothing is struck. (Its id keeps the old name "s93new" that the tests look for.)
+  // line. Nothing is struck. (Its id is "s93new", the name the tests look for.)
   async function insertClause(instant) {
     const page = desk.word.pageEl;
     const after = page.querySelector('[data-id="art9end"]');
@@ -2031,7 +2031,7 @@ function track(event, data) {
     }));
   }
 
-  // ---------- The beats (the plan's storyboard, in William's order) ----------
+  // ---------- The beats, in story order ----------
   // A beat that waited on the screen library goes on only if its own run is still live (a skip or the
   // story's end cancels it, and the screen it would touch may already be the post-intro one).
   let storyRun = null;
