@@ -268,7 +268,8 @@ async function gateAuto(page, name) {
       if (window.__zoeHero.gesture !== n) { clearInterval(iv); res({ ms: performance.now() - t0, pointer }); }
     }, 40);
   }), name);
-  expect(r.ms, `${name} gate waits for no more than 6 s`).toBeLessThan(6000);
+  expect(r.ms, `${name} gate presses itself after 6 to 11 s`).toBeGreaterThan(6000);
+  expect(r.ms, `${name} gate presses itself after 6 to 11 s`).toBeLessThan(11000);
   expect(r.pointer, `${name}: the pointer pressed the button`).toBe(true);
   return r;
 }
@@ -1206,7 +1207,9 @@ test('the hero is its own screen: wheel, touch and keys do not scroll it', async
 // Nobody touches anything: the opening's gestures wait for their idle clock, and the three click gates press themselves.
 const UNTOUCHED_LIMIT_MS = 200000;
 // From the lid's opening to the close, with nobody clicking (the three automatic clicks included).
-const AFTER_LID_LIMIT_MS = 50000;
+const AFTER_LID_LIMIT_MS = 80000;
+// The same, for a visitor who presses each button as soon as it shows.
+const PROMPT_LIMIT_MS = 55000;
 
 test('untouched: the story plays through by itself (recorded), with the opening timed', async ({ browser }, info) => {
   test.setTimeout(360000);
@@ -2166,7 +2169,7 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
     await page.waitForFunction(() => !document.querySelector('.screen .zs-page .b-fill') && document.querySelectorAll('.screen .zs-page .b-filled').length > 20, null, { timeout: 30000 });
     await page.waitForTimeout(1200);
     z.draft = await zoom(); z.paneDraft = await pane();
-    await page.waitForFunction(() => { const c = document.querySelector('.screen .zs-page [data-id="s93new"]'); return c && !c.classList.contains('is-typing'); }, null, { timeout: 20000 });
+    await page.waitForFunction(() => { const c = document.querySelector('.screen .zs-page [data-id="s93new"]'); return c && !c.classList.contains('is-typing'); }, null, { timeout: 60000 });
     await page.waitForTimeout(1200);
     z.clause = await zoom(); z.paneClause = await pane();
     await page.evaluate(() => window.__zoeHero.skip());
@@ -2185,7 +2188,7 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
 });
 
 test('click gates, unattended: three real buttons, each presses itself, nothing else competes, and the story is short', async ({ page }, info) => {
-  test.setTimeout(150000);
+  test.setTimeout(240000);
   const errors = watchErrors(page);
   await open(page);
   await runTo(page, 'lid');
@@ -2198,12 +2201,33 @@ test('click gates, unattended: three real buttons, each presses itself, nothing 
     const r = await gateAuto(page, name); // nobody clicks, taps or presses a key
     waits.push(Math.round(r.ms));
   }
-  await page.waitForFunction(() => window.__zoeHero.ended > 0, null, { timeout: 60000 });
+  await page.waitForFunction(() => window.__zoeHero.ended > 0, null, { timeout: 120000 });
   const total = await page.evaluate((t) => performance.now() - t, t0);
   metrics.gates_auto_ms = waits;
   metrics.after_lid_unattended_ms = Math.round(total);
   expect(total, 'from the lid opening to the close, nobody touching anything').toBeLessThan(AFTER_LID_LIMIT_MS + 3000); // measured after the close, so a little over the story itself
   expect(await page.evaluate(() => document.querySelectorAll('.stage .cta-hit').length === 0 || Array.from(document.querySelectorAll('.stage .cta-hit')).every((e) => e.hidden || e.getBoundingClientRect().width === 0))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('click gates, prompt: pressing each button as soon as it shows, the story runs from the lid to the close in under 55 s', async ({ page }, info) => {
+  test.setTimeout(240000);
+  const errors = watchErrors(page);
+  await open(page);
+  await runTo(page, 'lid');
+  await page.waitForFunction(() => window.__zoeHero.framesReady, null, { timeout: 20000 });
+  const t0 = await page.evaluate(() => { window.__zoeHero.perform('tap'); return performance.now(); });
+  const gate1 = await gateCheck(page, 'template', 'Choose template');
+  await gate1.click();
+  const gate2 = await gateCheck(page, 'insert', 'Insert');
+  await gate2.focus();
+  await page.keyboard.press('Enter');
+  const gate3 = await gateCheck(page, 'scrub', 'Scrub and send to cloud');
+  await gate3.click();
+  await page.waitForFunction(() => window.__zoeHero.ended > 0, null, { timeout: 120000 });
+  const total = await page.evaluate((t) => performance.now() - t, t0);
+  metrics.after_lid_prompt_ms = Math.round(total);
+  expect(total, 'from the lid opening to the close, each button pressed as it shows').toBeLessThan(PROMPT_LIMIT_MS + 3000); // measured after the close, so a little over the story itself
   expect(errors).toEqual([]);
 });
 
