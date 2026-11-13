@@ -378,8 +378,8 @@ body {
 
 .screen.is-on { opacity: 1; }
 
-/* The story's own touches inside the laptop's Word page: the template's blanks filling in, a clause
-   typing in line by line, Adapt's new terms. */
+/* The story's own touches inside the laptop's Word page: the template's blanks and their values, a clause
+   typing in line by line. */
 .screen .zs-page .b-fill { color: #8a8a8a; }
 /* The names coming back: a brief green flash that settles in the identified-term yellow. */
 .screen .zs-page .b-back { animation: b-back 1.6s ease-out; border-radius: 0.1em; }
@@ -1777,3 +1777,35 @@ html.intro-done .stage:not(.is-post) .brand { top: calc(var(--nav-h, 60px) + 12p
 /* screens.css loads without blocking first paint (index.html <head>): until it has applied, no Mac
    desk shows, so nothing ever flashes unstyled (the hero's screen or the product frames below). */
 html:not(.zs-css) .zs-root { visibility: hidden; }
+
+/* The visitor's clicks (hero.js clickGate): a real button laid over the glowing one drawn in the screen,
+   at least 44 px each way. It is invisible over a drawn button; with none to cover, it shows itself as a
+   glowing pill in the middle of the screen. */
+.stage .cta-hit {
+  position: absolute; left: 0; top: 0; z-index: 30;
+  margin: 0; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: transparent; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.stage .cta-hit .cta-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.stage .cta-hit:focus-visible { outline: 3px solid #9cc9ff; outline-offset: 4px; }
+.stage .cta-hit.is-standalone {
+  min-height: 48px; padding: 12px 22px; border-radius: 999px; background: #2f6fde; color: #fff;
+  font: 600 16px/1.2 inherit; box-shadow: 0 0 0 4px rgba(156, 201, 255, 0.55), 0 0 28px 8px rgba(80, 150, 255, 0.55);
+  animation: cta-pulse 1.4s ease-in-out infinite;
+}
+.stage .cta-hit.is-standalone .cta-label { position: static; width: auto; height: auto; clip: auto; }
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(156, 201, 255, 0.55), 0 0 18px 4px rgba(80, 150, 255, 0.45); }
+  50% { box-shadow: 0 0 0 9px rgba(156, 201, 255, 0.25), 0 0 34px 12px rgba(80, 150, 255, 0.7); }
+}
+/* The pointer that clicks for a visitor who waits. */
+.stage .cta-pointer {
+  position: absolute; left: 0; top: 0; z-index: 31; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s ease; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  transform-origin: 4px 3px;
+}
+.stage .cta-pointer.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .stage .cta-hit.is-standalone { animation: none; }
+}

@@ -506,3 +506,63 @@ p.zs-ins::before, div.zs-ins::before { content: ""; position: absolute; left: -2
 .zs-root.zs-root .zs-page .zs-ins { text-decoration-line: underline; }
 .zs-root.zs-root .zs-page .zs-del,
 .zs-root.zs-root .zs-page .zs-del * { color: #c00000; text-decoration-line: line-through; text-decoration-color: #c00000; }
+
+/* ---------- Click targets: a real button inside the drawn screen ----------
+   --zs-inv is one CSS pixel in the desk's virtual pixels (set at fit), so the hit area and the ring keep a
+   minimum on-screen size however small the desk is drawn. */
+.zs-gbtn { position: relative; margin: 0; font-family: var(--zs-ui); line-height: 1; cursor: pointer; pointer-events: auto; gap: 6px; }
+.zs-gbtn::after { content: ""; position: absolute; inset: min(0px, calc((100% - 44px * var(--zs-inv, 1)) / 2)); }
+.zs-gbtn:focus-visible { outline: max(3px, calc(2px * var(--zs-inv, 1))) solid #1b4fd8; outline-offset: max(3px, calc(2px * var(--zs-inv, 1))); }
+.zs-gbtn svg { width: 14px; height: 14px; flex: none; }
+/* Word pane: the Insert button on the one found clause */
+.zs-found .zs-acts { margin-top: 10px; padding: 4px 0 2px; }
+.zs-found .zs-gbtn { height: 32px; padding: 0 18px; font-size: 13.5px; border-radius: 5px; }
+.zs-found .zs-ctext { -webkit-line-clamp: 4; }
+/* Cockpit: Choose template on the one template result */
+.zs-res .zs-rfoot { display: flex; justify-content: flex-end; margin: 4px 6px 10px; }
+.zs-res .zs-rfoot .zs-gbtn { height: 32px; padding: 0 16px; font-size: 13px; font-weight: 600; }
+/* Narrow desks (phones) draw the targets larger still */
+.zs-w-s .zs-found .zs-gbtn { height: 40px; padding: 0 22px; font-size: 16px; }
+.zs-w-s .zs-res .zs-rfoot .zs-gbtn { height: 40px; padding: 0 20px; font-size: 16px; }
+
+/* The glow: one pulsing ring, the same on every target, the button drawn somewhat larger */
+.zs-glow {
+  --zs-r1: max(4px, calc(4px * var(--zs-inv, 1)));
+  --zs-r2: max(12px, calc(11px * var(--zs-inv, 1)));
+  transform: scale(1.14); z-index: 3;
+  box-shadow: 0 0 0 max(2px, calc(1.5px * var(--zs-inv, 1))) #fff, 0 0 0 var(--zs-r1) rgba(37, 99, 235, 0.9), 0 0 calc(var(--zs-r2) * 2) var(--zs-r1) rgba(37, 99, 235, 0.4);
+  animation: zs-glow 1.4s ease-in-out infinite;
+}
+@keyframes zs-glow {
+  0%, 100% { box-shadow: 0 0 0 max(2px, calc(1.5px * var(--zs-inv, 1))) #fff, 0 0 0 var(--zs-r1) rgba(37, 99, 235, 0.9), 0 0 calc(var(--zs-r2) * 1.4) var(--zs-r1) rgba(37, 99, 235, 0.35); }
+  50% { box-shadow: 0 0 0 max(2px, calc(1.5px * var(--zs-inv, 1))) #fff, 0 0 0 var(--zs-r2) rgba(37, 99, 235, 0.3), 0 0 calc(var(--zs-r2) * 2.6) var(--zs-r2) rgba(37, 99, 235, 0.45); }
+}
+.zs-nomotion .zs-glow { animation: none; }
+@media (prefers-reduced-motion: reduce) { .zs-glow { animation: none; } }
+/* room for the ring where the target sits in a scrolling view */
+.zs-found, .zs-res:has(.zs-gbtn) { overflow: visible; }
+
+/* ---------- Dialog over the front window (the cockpit's modal look) ---------- */
+.zs-mback { position: absolute; inset: 24px 0 0; z-index: 40; display: grid; place-items: center; background: rgba(24, 22, 18, 0.32);
+  opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+.zs-mback.is-open { opacity: 1; visibility: visible; transition: opacity 0.2s ease; }
+.zs-mback.zs-now, .zs-nomotion .zs-mback { transition: none; }
+.zs-modal { width: 460px; background: #fff; border-radius: 16px; color: #1b1b19; font-family: var(--zs-ui);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.06); }
+.zs-w-s .zs-modal { transform: scale(1.5); }
+.zs-mhead { display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px 12px; }
+.zs-micon { width: 34px; height: 34px; flex: none; border-radius: 10px; background: #eaedfd; color: #2a46c4; display: grid; place-items: center; }
+.zs-micon svg { width: 18px; height: 18px; }
+.zs-mtitle { font-family: var(--zs-serif); font-size: 21px; font-weight: 600; line-height: 1.2; }
+.zs-msub { color: #6d6b64; font-size: 13.5px; margin-top: 4px; }
+.zs-mbody { padding: 4px 22px 18px 68px; font-size: 13.5px; line-height: 1.45; color: #3b3a36; }
+.zs-mfoot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 14px 22px; border-top: 1px solid #e4e2db; background: #f7f6f2; border-radius: 0 0 16px 16px; }
+.zs-mfoot .zs-gbtn { height: 36px; padding: 0 18px; font-size: 14px; font-weight: 600; border-radius: 8px; background: #2f4fd6; border-color: #2f4fd6; color: #fff; }
+/* over Word with the pane open: the sheet sits over the document, the pane stays in view beside it */
+.zs-mback.zs-mdoc { padding-right: 300px; }
+.zs-w-s .zs-mback.zs-mdoc .zs-modal { width: 380px; transform: scale(1.45); }
+/* the template result while the draft is being made: a spinner in place of the button */
+.zs-res .zs-drafting { align-items: center; gap: 9px; height: 32px; font-size: 13px; font-weight: 600; color: #2a46c4; }
+.zs-w-s .zs-res .zs-drafting { height: 40px; font-size: 16px; }
+.zs-spin { width: 1.2em; height: 1.2em; flex: none; border-radius: 50%; border: 0.16em solid #c9d1f5; border-top-color: #2f4fd6; animation: zs-spin 0.8s linear infinite; }
+@keyframes zs-spin { to { transform: rotate(360deg); } }

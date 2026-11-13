@@ -55,16 +55,6 @@ const TERM_SHEET = [
 // The agreement and plan of merger the story drafts and reviews: agreement.js, loaded
 // once the workspace is up (the agreement, the knowledge clause Bob picks and the clause library's results).
 
-// The six vault files ZOE redacts and sends to the cloud AI for the review.
-const SENT_FILES = [
-  'Mutual confidentiality agreement, signature page · signed by {parent}',
-  'Certificate of formation · {buyer}',
-  'Cover email · {signer}',
-  'Earlier letter of intent · {parent}',
-  'Board consent · {seller}',
-  'Disclosure schedule · {seller}',
-];
-
 // The cloud AI models named under the cloud, as their product marks (24×24 paths).
 // Marks from simple-icons (CC0): Claude and Google Gemini from v16.34.0; OpenAI (ChatGPT's mark) from v13.21.0;
 // Microsoft from v11.15.0, standing in for Copilot because no free Copilot mark exists. Trademarks of their owners.
@@ -85,30 +75,15 @@ const LINES = {
   snapped: 'Picture taken. Into the laptop.',
   noTrust: "I don't trust their Wi-Fi. Going local.",
   wifiOff: "Wi-Fi off. Let's go.",
-  zoeLook: 'Looks like a term sheet. Finding the names, addresses, dates and ID numbers.',
-  identified: 'Key terms identified.',
-  vault:   'Searching 35,263 vault files…',
-  found:   'Found 128 files on this client in your vault.',
-  golden:  "Searching 2,500 of your firm's golden templates…",
-  loaded:  "Loaded your firm's merger agreement template and the conservative seller playbook.",
-  conserv: "Conservative to start. We'll see what they come back with.",
-  fill:    "Filling in your firm's template from the term sheet.",
+  scan:    'Finding critical information in the term sheet.',
+  search:  'Searching the vault for relevant information and potential templates.',
+  foundTpl: 'Found a potential template.',
+  drafting: 'Drafting document.',
   sandbag: 'Not bad for a first draft. But I need an anti-sandbagging clause.',
-  library: 'Searching your local secure clause library…',
-  top10:   'Top 10 matches.',
-  thatOne: "That's the one. Perfect.",
-  inserting: 'Inserting now.',
-  review:  'One last check before it goes out: a cloud AI review, with the names scrubbed.',
-  scrubNow: 'Scrubbing the draft first.',
-  marked:  'Scrubbed. Nothing has left this laptop yet.',
-  redact6: 'Adding 25 paragraphs from 6 vault files, scrubbed the same way.',
-  sent:    'Sent.',
-  lockdown: "Received. Wi-Fi no longer needed. We're locked down.",
-  catch:   'The review flags: Party 5 is an empty shell. Party 6 is its parent, and it is not in this deal.',
-  proof:   'Your vault agrees: the parent signed the earlier confidentiality agreement.',
-  apply:   "Applying the review's change: the parent joins as a party and makes the buyer's representations and warranties alongside its subsidiary.",
-  restore: 'Putting the real names back, on this laptop.',
-  caught:  'They left the parent off the hook. Caught it.',
+  findClause: 'Finding the clause.',
+  clauseFound: 'Found. Ready for you to insert.',
+  scrubSend: 'Scrubbed. Sending to cloud AI.',
+  applied: 'Review applied. Names restored.',
   jimmy3:  "Ten minutes. Tell me you've got something.",
   bob3:    "Draft's done. And their shell left the parent off the hook. It's in now.",
   jimmy4:  '…How?',
@@ -151,16 +126,10 @@ function track(event, data) {
   const FLICK_PX_PER_MS = 0.6; // upward release speed that opens regardless of distance
   // Pacing: the reading side (typing, holds, pauses) runs at half speed; the animations keep their durations.
   const TYPE_MS = 24;          // per character
-  const PAGE_SCRUB_MS = 300;   // one redacted page: the pass down its lines (six pages, about 2.5 s)
   const PAGE_FLIGHT_MS = 700;  // a page's trip to the cloud (styles.css .page6.is-flying)
-  const PAGE_FLY_GAP_MS = 160; // the redacted pages leave one after another
+  const PAGE_FLY_GAP_MS = 100; // the redacted pages leave one after another
   const HOLD = 2;              // reading time: every spoken line and the pauses between beats
   const MOTION = 1;            // the page runs, the streams, the card flight, the clause typing in
-  const KEY_LINE_MS = 3000;    // the catch and the fix stay on screen at least this long
-  // The template-and-playbook beat: each line's hold is midway between the original and the 1.6x
-  // trial (ZOE's line was held 1x, Bob's thought not at all), and the pace is normal again after it.
-  const TEMPLATE_HOLD_ZOE = 1.3;
-  const TEMPLATE_HOLD_BOB = 0.8;
   // Portrait round trip: where the screen's top edge sits, the cloud's height, and the gap for the stream.
   const PORTRAIT_CLOUD_Y = 28;     // the cloud's top edge during the round trip
   const PORTRAIT_CLOUD_H = 150;
@@ -343,6 +312,7 @@ function track(event, data) {
     clearTimeout(idleTimer);
     gestureNow = null;
     if (pills) pills.innerHTML = '';
+    if (typeof clearCta === 'function') clearCta();
   }
 
   function animate(el, keyframes, opts) {
@@ -1638,34 +1608,6 @@ function track(event, data) {
     }).join('');
   }
 
-  // What the final review sends: the draft's opening as ZOE's Scrubbed copy shows it.
-  const PH_CHIP = /^(?:(?:Party|Person|Address) \d+|\[Month_Day_Year\])$/;
-  function scrubbedAgreement() {
-    let n = 0;
-    const html = agreement().blocks.slice(0, 12).map(([type, text, lead]) => {
-      if (type === 'rule') return '';
-      const t = `${lead ? `${lead} ` : ''}${text}`.replace(/⟦[^⟧]*⟧/g, '');
-      if (!t.trim()) return '';
-      const body = wrapPii(t, (real, mask) => {
-        if (mask === real) return esc(real);
-        n += 1;
-        return PH_CHIP.test(mask) ? `<mark class="zs-ph">${esc(mask)}</mark>` : esc(mask);
-      });
-      return type === 'title' || type === 'h' || type === 'cb' ? `<p><b>${body}</b></p>` : `<p>${body}</p>`;
-    }).join('');
-    return { html, n };
-  }
-
-  // The agreement's sections as the cockpit lists them (headings as the draft has them, before the fix).
-  function agreementSections() {
-    const head = agreement().blocks.filter(([type]) => type === 'title' || type === 'h')
-      .map(([, text]) => String(text).replace(/\u27e6[^\u27e7]*\u27e7/g, ''));
-    const small = new Set(['and', 'of', 'the', 'to', 'for', 'in']);
-    const title = (t) => t.toLowerCase().split(' ').map((w, i) => (i && small.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
-    return head.map((h, i) => (i === 0 ? h : h.replace(/^ARTICLE ([IVX]+) — (.*)$/, (_, n, t) => `Article ${n} — ${title(t)}`)
-      .replace(/^(RECITALS|SIGNATURE PAGE)\b(.*)$/, (_, w, rest) => title(w) + rest.toLowerCase())));
-  }
-
   // The firm's template and playbook, as the cockpit's template search finds them.
   const TEMPLATE_SEARCH = {
     description: 'cash merger, earn-out, escrow for indemnification, seller-friendly, Delaware',
@@ -1850,7 +1792,7 @@ function track(event, data) {
     return desk.word.scrollTo(y, RM ? 0 : ms * MOTION);
   }
 
-  // Runs Word's page from where it is to `to()` (re-read every frame: filling in reflows the page), calling
+  // Runs Word's page from where it is to `to()` (re-read every frame: the page may reflow), calling
   // pass(line) with the screen y of a line 80 % of the way down the window, so items light as they arrive.
   function runPage(ms, to, pass) {
     const sc = desk.word.scrollEl;
@@ -1877,7 +1819,7 @@ function track(event, data) {
 
   // The scrub: the page runs down the term sheet and each identifier lights warm yellow as it arrives;
   // back at the top, ZOE announces it and they all switch at once.
-  const SCRUB_RUN_MS = 2800;
+  const SCRUB_RUN_MS = 1500;
   const docIds = () => Array.from(desk.word.pageEl.querySelectorAll('[data-k]'));
   async function findIdentifiers() {
     const ids = docIds();
@@ -1893,8 +1835,8 @@ function track(event, data) {
     });
     check();
     ids.forEach((el) => el.classList.add('zs-hl'));
-    await wait(450);
-    await wordScrollTo(ids[0], 0.1, 900);
+    await wait(200);
+    await wordScrollTo(ids[0], 0.1, 500);
   }
 
   // The review's scrub, on the draft: every identified term turns at once into its placeholder.
@@ -1922,9 +1864,8 @@ function track(event, data) {
     });
   }
 
-  // The template filling in: a [●] becomes the term sheet's value with a soft flash.
-  // A [●] becomes the term sheet's value; in the story it lands highlighted yellow and stays so (the
-  // identified terms are marked until the review's scrub).
+  // A [●] in the template becomes the term sheet's value; in the story it shows highlighted yellow and stays
+  // so (the identified terms are marked until the review's scrub).
   function fillOne(el, hl = true) {
     el.textContent = el.dataset.v;
     el.classList.remove('b-fill');
@@ -1932,25 +1873,17 @@ function track(event, data) {
     if (hl && !el.hasAttribute('data-keep')) el.classList.add('zs-hl');
   }
 
-  // Redacting 6 files, offline: one page at a time a pass runs down it and each line turns from grey to
-  // the masked blue as the pass crosses it; the redacted pages stack up beside the screen.
+  // Where the stack of pages sits beside the screen.
   const pageStart = () => (geo.portrait ? { x: 0, y: -46 } : { x: 52, y: -22 });
-  async function redactPages() {
-    const pages = Array.from(fan.querySelectorAll('.page6'));
+
+  // The scrubbed copy, as a small stack of pages beside the screen, ready to go out.
+  function stackPages() {
     const start = pageStart();
-    for (const [n, page] of pages.entries()) {
-      const at = `translate(${start.x + n * 3}px, ${start.y - n * 3}px)`;
-      page.style.transform = `${at} scale(0.85)`;
-      void page.offsetWidth;
+    Array.from(fan.querySelectorAll('.page6')).forEach((page, n) => {
+      page.style.transform = `translate(${start.x + n * 3}px, ${start.y - n * 3}px)`;
       page.classList.add('is-in');
-      page.style.transform = at;
-      const lines = Array.from(page.querySelectorAll('.page6-lines i'));
-      if (!RM) {
-        animate($('.page6-bar', page), [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(100%)', opacity: 1 }], { duration: PAGE_SCRUB_MS, easing: 'linear' });
-      }
-      lines.forEach((ln, k) => later(() => ln.classList.add('is-on'), RM ? 0 : ((k + 0.5) / lines.length) * PAGE_SCRUB_MS));
-      await wait(PAGE_SCRUB_MS + 80);
-    }
+      page.querySelectorAll('.page6-lines i').forEach((ln) => ln.classList.add('is-on'));
+    });
   }
 
   // Then, with Wi-Fi on, the masked pages travel to the cloud one after another under the label.
@@ -2056,190 +1989,140 @@ function track(event, data) {
     alive();
   }
 
-  // 2. Identify, no scrub: the page runs down and each name, address, date and ID number lights up yellow and stays
-  // yellow; nothing is going to the cloud yet, so nothing is switched.
+  // 2. The term sheet: the page runs down and the critical terms light up yellow. One line, no list.
   async function beatIdentify() {
     setAct(3);
     zoeWorking(true);
-    const look = zoeSay('zoeLook', false);
+    const scan = zoeSay('scan', false);
     await findIdentifiers();
-    await look;
+    await scan;
     zoeWorking(false);
-    await beat(200);
-    await zoeSay('identified', false);
     track('identified');
-    await wait(dwell(LINES.identified));
     if (RM) await gesture('identified', 0, async () => {});
     readingLayout(false, 100);
   }
 
-  // 3. The vault and the templates, in Safari's cockpit, all offline.
+  // 3. The vault, then the template search, a second each under one line; then the one template found,
+  // and the visitor chooses it.
+  const TEMPLATE_ONE = Object.assign({}, TEMPLATE_SEARCH, { results: TEMPLATE_SEARCH.results.slice(0, 1) });
   async function beatVault() {
     clearThoughts();
     zoeWorking(true);
-    desk.cockpit.setView('matters', {}, { instant: true });
+    desk.cockpit.setView('documents', { count: VAULT_FOUND }, { instant: true });
     await desk.setApp('safari');
     alive();
-    await zoeSay('vault', false);
-    await beat(500);
-    await desk.cockpit.setView('documents', { count: VAULT_FOUND });
-    alive();
-    await zoeSay('found', false);
-    await wait(dwell(LINES.found));
-    desk.cockpit.setView('templates', { loading: true });
-    await zoeSay('golden', false);
+    const searching = zoeSay('search', false);
     await beat(450);
+    desk.cockpit.setView('templates', { loading: true });
+    await beat(450);
+    await searching;
     zoeWorking(false);
-    await desk.cockpit.setView('templates', TEMPLATE_SEARCH);
+    await desk.cockpit.setView('templates', Object.assign({}, TEMPLATE_ONE, { choose: true }));
     alive();
-    await zoeSay('loaded', false);
-    await wait(TEMPLATE_HOLD_ZOE * dwell(LINES.loaded));
-    await think('conserv', false);
-    await wait(TEMPLATE_HOLD_BOB * dwell(LINES.conserv));
+    cockpitShow(ctaTarget('template'));
+    await zoeSay('foundTpl', false);
+    await clickGate('template', 'Choose template');
   }
 
-  // 4. The draft: the firm's template opens in Word and fills in from the term sheet as the page runs,
-  // stopping at Article IX, where the next beat needs it.
-  const DRAFT_RUN_MS = 5200;
+  // 4. Drafting: one spinner turn, then Word with the draft already filled in (its terms yellow).
   async function beatDraft() {
-    clearThoughts();
+    desk.cockpit.setView('templates', Object.assign({}, TEMPLATE_ONE, { choose: 'drafting' }));
+    zoeWorking(true);
+    const drafting = zoeSay('drafting', false);
     await loadAgreement();
     check();
     desk.word.setDocument(agreementDoc(), { title: 'Agreement and Plan of Merger', pages: 13 });
+    desk.word.pageEl.querySelectorAll('.b-fill').forEach((el) => fillOne(el));
     desk.word.setZoom(ZOOM_DRAFT);
+    desk.word.setPaneOpen(true);
     desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.buyer.real.toUpperCase(), PARTIES.seller.real.toUpperCase()], similar: 3, suggestions: TWO_PARTY_SUGGESTIONS }, { instant: true });
+    await motion(900);
+    await drafting;
+    zoeWorking(false);
     await desk.setApp('word');
     alive();
-    const page = desk.word.pageEl;
-    const sc = desk.word.scrollEl;
-    const blanks = Array.from(page.querySelectorAll('.b-fill'));
-    const slot = page.querySelector('[data-id="art9end"]');   // the run ends where the clause will land
-    const done = new Set();
-    const fill = zoeSay('fill', false);
-    await runPage(DRAFT_RUN_MS, () => (slot ? Math.max(0, absTop(slot) - absTop(sc) - 0.3 * sc.clientHeight) : 0), (line) => {
-      blanks.forEach((el) => {
-        if (!done.has(el) && el.getBoundingClientRect().top < line) {
-          done.add(el);
-          fillOne(el);
-        }
-      });
-    });
-    check();
-    blanks.forEach((el) => { if (!done.has(el)) fillOne(el); });
-    await fill;
-    await wait(dwell(LINES.fill));
+    await beat(100);
   }
 
-  // 5. The anti-sandbagging clause: the local clause search, then Insert: § 9.6 lands at the end of Article IX
-  // as a red tracked insertion, already in this agreement's defined terms.
+  // 5. The anti-sandbagging clause: found at once, and the visitor inserts it; it lands at the end of
+  // Article IX as a red tracked insertion.
   async function beatClause() {
-    await think('sandbag');
-    zoeWorking(true);
-    desk.word.setPane('clauses', { query: 'anti-sandbagging', ideas: ['anti-sandbagging'], results: CLAUSE_RESULTS });
-    await zoeSay('library', false);
-    await beat(400);
-    zoeWorking(false);
-    await zoeSay('top10', false);
-    await wait(dwell(LINES.top10));
-    const thatOne = think('thatOne', false);
-    desk.word.setPane('insertPreview', Object.assign(clauseCard(), { where: 'Below ¶ this paragraph' }));
-    await thatOne;
-    await wait(dwell(LINES.thatOne));
-    await zoeSay('inserting', false);
+    const asking = think('sandbag', false);
+    const page = desk.word.pageEl;
     await readingLayout(true, ZOOM_CLAUSE);
     alive();
+    await wordScrollTo(page.querySelector('[data-id="art9end"]'), 0.3, 700);
+    alive();
+    await asking;
+    zoeWorking(true);
+    await zoeSay('findClause', false);
+    await beat(250);
+    zoeWorking(false);
+    desk.word.setPane('clauseFound', Object.assign(clauseCard(), { where: 'Below ¶ this paragraph' }));
+    await zoeSay('clauseFound', false);
+    await clickGate('insert', 'Insert');
     await insertClause(false);
     desk.word.setPane('afterInsert', Object.assign(clauseCard(), { where: 'below ¶ this paragraph' }));
-    await wait(dwell(LINES.inserting));
-    await beat(300);
-    if (RM) await gesture('act4', 0, async () => {});
+    await beat(100);
   }
 
-  // 6. The review is proposed, and only now the scrub: in Word, every yellow term of the draft turns at once
-  // into its placeholder.
+  // 6. One cloud review: a dialog over Word with one button, and the visitor scrubs and sends.
   async function beatPropose() {
     clearThoughts();
-    setAct(4);
-    zoeWorking(true);
-    const page = desk.word.pageEl;
-    // While ZOE offers the review, Word comes up to the preamble, where the yellow names are.
-    const offer = zoeSay('review', false);
-    await readingLayout(true, ZOOM_READ);
-    alive();
-    await wordScrollTo(page.querySelector('[data-id="preamble"]') || page.firstElementChild, 0.08, 900);
-    alive();
-    await offer;
-    await wait(dwell(LINES.review));
-    await zoeSay('scrubNow', false);
-    await beat(150);
-    scrubDraft();
-    track('scrubbed');
-    await motion(700);
-    zoeWorking(false);
-    await zoeSay('marked', false);
-    await wait(dwell(LINES.marked));
-    readingLayout(false, 100);
+    zoe.classList.remove('is-in');                 // the dialog speaks for itself
+    if (desk.word.setDialog) desk.word.setDialog({ title: 'Cloud AI review', body: 'Send this draft to cloud AI for review.', button: 'Scrub and send to cloud' });
+    await clickGate('scrub', 'Scrub and send to cloud');
+    if (desk.word.setDialog) desk.word.setDialog(null);
   }
 
-  // 7. Out and back: one cloud review with names masked. ZOE gathers and redacts what it needs, sends it,
-  // and the answer comes back; the cloud never speaks. ZOE reports what it found.
+  // 7. The scrub plays at the top of the draft (yellow terms to placeholders), the scrubbed copy goes out and
+  // the answer comes back, with Wi-Fi on only for the exchange.
   async function beatReview() {
-    zoeWorking(true);
-    const scrubbed = scrubbedAgreement();
-    desk.cockpit.setView('scrubbed', { title: 'merger_agreement_draft.docx', type: 'Agreement and Plan of Merger', html: scrubbed.html, replacements: scrubbed.n, sections: agreementSections() }, { instant: true });
-    await desk.setApp('safari');
+    setAct(4);
+    await topOfDraft(500);
     alive();
-    await beat(300);
+    scrubDraft();
+    track('scrubbed');
+    $('.zoe-say', zoe).textContent = '';
+    zoe.classList.add('is-in');
+    const scrubbed = zoeSay('scrubSend', false);
+    await motion(600);
+    await scrubbed;
     if (!geo.portrait) {
       zoe.classList.remove('is-in');
-      await beat(200);
+      await beat(100);
     }
     clearStrip();
     camera('slide');                               // the cloud waits on the right (above, on phones), silent
-    $('.zoe-say', zoe).textContent = '';
     zoe.classList.add('is-in');
     cloud.classList.add('is-in');
-    await beat(300);
-    // Redaction first, with Wi-Fi still OFF; only the masked pages go out.
-    const redacting = zoeSay('redact6', false);
-    await redactPages();
-    await redacting;
-    zoeWorking(false);
-    await beat(150);
-    setWifi(true);                                 // ON for the masked exchange only
-    await beat(300);
+    stackPages();
+    await beat(100);
+    setWifi(true);                                 // ON for the exchange only
+    await beat(80);
     stream.classList.add('is-on', 'is-out');
     label.classList.add('is-on');
     track('reached_cloud');
     await flyPages();
-    await zoeSay('sent', false);
     if (RM) await gesture('review', 0, async () => {});
     stream.classList.remove('is-out');
     cloud.classList.add('is-busy');
-    await motion(1500);                            // the review: silent
+    await motion(700);                             // the review: silent
     stream.classList.add('is-back');
-    await motion(900);
+    await motion(600);
     stream.classList.remove('is-back');
     setWifi(false);                                // OFF again the moment the answer is in
     cloud.classList.remove('is-busy');
-    await zoeSay('lockdown', false);
     cloud.classList.add('is-out');
     stream.classList.remove('is-on');
     label.classList.remove('is-on');
-    await wait(dwell(LINES.lockdown));
     camera(geo.portrait ? 'zoom' : 'read');
-    await zoeSay('catch', false);
-    await wait(Math.max(KEY_LINE_MS, dwell(LINES.catch)));
-    await desk.cockpit.setView('signatures');
-    alive();
-    await zoeSay('proof', false);
-    await wait(Math.max(KEY_LINE_MS, dwell(LINES.proof)));
+    await beat(100);
   }
 
-  // 8. The review's change is applied, still in placeholders: the parent joins as a party and makes the
-  // buyer's representations and warranties alongside Merger Sub. Every edit is a red tracked insertion.
+  // 8. The review's change lands, still in placeholders: the parent joins as a party (the parties clause,
+  // then Article V). Every edit is a red tracked insertion; Article IX is not in view from here on.
   async function beatApply() {
-    clearThoughts();
     setStep(4.5);
     await desk.setApp('word');
     alive();
@@ -2254,26 +2137,16 @@ function track(event, data) {
     const five = fixes.filter((f) => !early.includes(f) && !art4.includes(f) && f.closest('[data-id^="art5"]'));
     const rest = fixes.filter((f) => !early.includes(f) && !art4.includes(f) && !five.includes(f));
     desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.parent.mask, PARTIES.buyer.mask, PARTIES.seller.mask], similar: 3 });
-    await readingLayout(true, ZOOM_CLAUSE);
-    alive();
-    // In the order ZOE names them: the parent joins the parties clause, then Article V. Word is still at the
-    // top from the scrub, and the camera stays between the cover and Article V: Article IX, where the clause
-    // sits, is never in view from here to the end.
-    const applying = zoeSay('apply', false);
-    await topOfDraft(600);
-    alive();
     showFixes(early);
-    await motion(1400);
+    await motion(700);
     if (art5) {
       showFixes(art4);                             // "to Parent and Merger Sub", passed on the way down
-      await wordScrollTo(art5, 0.15, 900);
+      await wordScrollTo(art5, 0.15, 600);
       alive();
       showFixes(five);
-      await motion(1200);
+      await motion(700);
     }
     showFixes(rest);                               // the signature page, off camera
-    await applying;
-    await wait(dwell(LINES.apply));
   }
 
   // The parties clause in view: the top of the agreement, the cover and the preamble.
@@ -2281,21 +2154,112 @@ function track(event, data) {
     return desk.word.scrollTo(0, RM ? 0 : ms * MOTION);
   }
 
-  // 9. The names come back: every placeholder turns back into the real name, address or date, a brief green flash
-  // settling in the same yellow as before the scrub.
+  // 9. The names come back: every placeholder turns back into the real name, address or date, a brief green
+  // flash settling in the same yellow as before the scrub.
   async function beatRestore() {
-    await topOfDraft(900);
+    await topOfDraft(500);
     alive();
     desk.word.setPane('home', { docType: 'Agreement and Plan of Merger', parties: [PARTIES.parent.real.toUpperCase(), PARTIES.buyer.real.toUpperCase(), PARTIES.seller.real.toUpperCase()], similar: 3 });
-    const restoring = zoeSay('restore', false);
-    await beat(200);
     restoreAll(true);
     track('restored');
-    await restoring;
-    await motion(1500);
-    await think('caught', false);
-    await wait(dwell(LINES.caught));
+    await zoeSay('applied', false);
+    await motion(600);
     if (RM) await gesture('act5', 0, async () => {});
+  }
+
+  // Brings an element of the cockpit's page well into view (the desk is drawn scaled, so screen pixels are
+  // converted back to the page's own).
+  function cockpitShow(el) {
+    const sc = desk.cockpit.scrollEl;
+    if (!el || !sc) return;
+    const box = sc.getBoundingClientRect();
+    const k = box.height / (sc.clientHeight || 1) || 1;
+    const r = el.getBoundingClientRect();
+    if (r.bottom <= box.bottom - 0.15 * box.height) return;
+    sc.style.scrollBehavior = 'auto';
+    sc.scrollTop += (r.bottom - box.bottom) / k + 0.3 * sc.clientHeight;
+    sc.style.scrollBehavior = '';
+  }
+
+  // ---------- The visitor's three clicks ----------
+  // The story stops on a glowing button in the screen (screens.js draws it, marked data-cta) and goes on
+  // when the visitor clicks or taps it, or presses Enter or Space. The click lands on a real <button> laid
+  // over the drawn one, at least 44 px each way, so a phone's small screen still has a fair target. After
+  // CLICK_IDLE_MS without a click a pointer glides to the button and clicks it, about 3 s after it showed.
+  const CLICK_IDLE_MS = 2200;
+  const CTA_MIN = 44;
+  let ctaGate = null;   // { name, btn, raf }
+  const ctaTarget = (name) => (desk && desk.el ? desk.el.querySelector(`[data-cta="${name}"]`) : null);
+  function placeCta() {
+    const g = ctaGate;
+    if (!g) return;
+    const t = ctaTarget(g.name);
+    const sr = stage.getBoundingClientRect();
+    const r = t && t.getBoundingClientRect();
+    const has = !!(r && r.width && r.height);
+    g.btn.classList.toggle('is-standalone', !has);   // no drawn button: the proxy shows itself
+    if (has) {
+      const w = Math.max(CTA_MIN, r.width);
+      const h = Math.max(CTA_MIN, r.height);
+      g.btn.style.width = `${w}px`;
+      g.btn.style.height = `${h}px`;
+      g.btn.style.transform = `translate(${(r.left - sr.left + (r.width - w) / 2).toFixed(1)}px, ${(r.top - sr.top + (r.height - h) / 2).toFixed(1)}px)`;
+    } else {
+      const s = screen.getBoundingClientRect();
+      g.btn.style.width = '';
+      g.btn.style.height = '';
+      g.btn.style.transform = `translate(${(s.left - sr.left + s.width / 2).toFixed(1)}px, ${(s.top - sr.top + s.height / 2).toFixed(1)}px) translate(-50%, -50%)`;
+    }
+    g.raf = requestAnimationFrame(placeCta);
+  }
+  function clearCta() {
+    if (!ctaGate) return;
+    cancelAnimationFrame(ctaGate.raf);
+    ctaGate.btn.remove();
+    ctaGate = null;
+    ctaPointer.classList.remove('is-on');
+  }
+  const ctaPointer = document.createElement('div');
+  ctaPointer.className = 'cta-pointer';
+  ctaPointer.setAttribute('aria-hidden', 'true');
+  ctaPointer.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M5 2.5v17.2l4.6-4.3 3.1 6.9 2.9-1.3-3.1-6.8h6.3z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  stage.appendChild(ctaPointer);
+  // The unattended click: the pointer comes in from below right, rests on the button, presses.
+  async function autoPointer() {
+    const g = ctaGate;
+    if (!g) return;
+    const sr = stage.getBoundingClientRect();
+    const r = g.btn.getBoundingClientRect();
+    const to = { x: r.left - sr.left + r.width / 2 - 4, y: r.top - sr.top + r.height / 2 - 3 };
+    const from = { x: to.x + 70, y: to.y + 90 };
+    ctaPointer.style.transform = `translate(${from.x}px, ${from.y}px)`;
+    ctaPointer.classList.add('is-on');
+    await animate(ctaPointer, [{ transform: `translate(${from.x}px, ${from.y}px)` }, { transform: `translate(${to.x}px, ${to.y}px)` }], { duration: 650, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+    ctaPointer.style.transform = `translate(${to.x}px, ${to.y}px)`;
+    await animate(ctaPointer, [{ transform: `translate(${to.x}px, ${to.y}px) scale(1)` }, { transform: `translate(${to.x}px, ${to.y}px) scale(0.82)` }, { transform: `translate(${to.x}px, ${to.y}px) scale(1)` }], { duration: 220 });
+  }
+  async function clickGate(name, label) {
+    clearCta();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cta-hit';
+    btn.dataset.gate = name;
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = `<span class="cta-label">${esc(label)}</span>`;
+    stage.appendChild(btn);
+    ctaGate = { name, btn, raf: 0 };
+    placeCta();
+    try {
+      await gesture(name, CLICK_IDLE_MS, async (method) => {
+        if (method === 'auto') await autoPointer();
+        const t = ctaTarget(name);
+        if (t) t.classList.add('is-pressed');
+        track('cta', { gate: name, method });
+        await wait(160, false);
+      }, btn);
+    } finally {
+      clearCta();
+    }
   }
 
   // ---------- Pills, inspect, replay ----------
@@ -2382,7 +2346,6 @@ function track(event, data) {
     inspectOpen = true;
     const realDoc = TERM_SHEET.map(([k, v]) => `<p><b>${esc(k)}:</b> ${piiHtml(v)}</p>`).join('');
     const maskDoc = TERM_SHEET.map(([k, v]) => `<p><b>${esc(k)}:</b> ${piiHtml(v, 'mask')}</p>`).join('');
-    const sent = SENT_FILES.map((f) => `<li>${piiHtml(f, 'mask')}</li>`).join('');
     inspect.innerHTML = `
       <h2 class="insp-h">What left the laptop</h2>
       <div class="insp-cols">
@@ -2395,20 +2358,17 @@ function track(event, data) {
           <div class="insp-doc">${maskDoc}</div>
           <ul class="insp-list">
             <li><b>Also sent:</b> ${esc(UI.template[0])} · ${esc(UI.template[1])}; ${esc(UI.playbook[0])} · ${esc(UI.playbook[1])}</li>
-            <li><b>Request:</b> ${esc(plain(LINES.review))}</li>
-            <li><b>When asked, 25 redacted paragraphs from 6 files:</b></li>
-            ${sent}
+            <li><b>Request:</b> Review this draft.</li>
           </ul>
         </section>
       </div>
       <ol class="timeline" aria-label="Wi-Fi timeline">
         <li class="off">Wi-Fi OFF · Air-gapped</li>
-        <li class="off">Names, addresses, dates and ID numbers found</li>
-        <li class="off">Data scrubbed</li>
+        <li class="off">Critical information found</li>
+        <li class="off">Scrubbed</li>
         <li class="on">Wi-Fi ON</li>
-        <li class="on">Scrubbed term sheet sent</li>
-        <li class="on">25 redacted paragraphs from 6 files sent</li>
-        <li class="on">Draft returned · real names restored on the laptop</li>
+        <li class="on">Scrubbed draft sent</li>
+        <li class="on">Review returned · names restored on the laptop</li>
       </ol>
       <div class="insp-back"></div>`;
     const back = document.createElement('button');
@@ -2475,13 +2435,13 @@ function track(event, data) {
     }
     await Promise.all([thoughts, g2]);
     await beatOpen();      // 1. Word, the term sheet, Wi-Fi off
-    await beatIdentify();  // 2. key terms identified: yellow, and they stay yellow
-    await beatVault();     // 3. vault and templates (Safari)
-    await beatDraft();     // 4. the template filled in (Word); the filled-in terms land yellow
-    await beatClause();    // 5. anti-sandbagging: found and inserted as a tracked change
-    await beatPropose();   // 6. one cloud review proposed; only now the scrub (yellow to placeholders)
-    await beatReview();    // 7. out and back, Wi-Fi on only for the masked exchange; the finding
-    await beatApply();     // 8. the review's changes applied, in placeholders
+    await beatIdentify();  // 2. the critical terms light up yellow
+    await beatVault();     // 3. vault and template search; click one: Choose template
+    await beatDraft();     // 4. drafted: Word with the draft filled in
+    await beatClause();    // 5. the clause found; click two: Insert
+    await beatPropose();   // 6. click three: Scrub and send to cloud
+    await beatReview();    // 7. the scrub, out and back, Wi-Fi on only for the exchange
+    await beatApply();     // 8. the review's change lands, in placeholders
     await beatRestore();   // 9. the names come back, yellow
 
     // Act V — ten minutes are up

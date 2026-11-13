@@ -58,7 +58,28 @@ const PANEL_FROM = '// Standard cloud AI: the chain';
 const PANEL_TO = 'const ZOE = {';
 // The clause is a plain insertion (Section 9.6, after Article IX's last section); nothing is ever struck.
 const CLAUSE_TEXT = 'Section 9.6 Knowledge; No Sandbagging. Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub\'s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.';
-const LINE_28 = "Applying the review's change: the parent joins as a party and makes the buyer's representations and warranties alongside its subsidiary.";
+// The spoken lines after the laptop opens, in order (the product's lines carry the label "ZOE AI"), then the unchanged close.
+const STORY_AFTER_LID = [
+  'ZOE AI: Finding critical information in the term sheet.',
+  'ZOE AI: Searching the vault for relevant information and potential templates.',
+  'ZOE AI: Found a potential template.',
+  'ZOE AI: Drafting document.',
+  'Bob (thinking): Not bad for a first draft. But I need an anti-sandbagging clause.',
+  'ZOE AI: Finding the clause.',
+  'ZOE AI: Found. Ready for you to insert.',
+  'ZOE AI: Scrubbed. Sending to cloud AI.',
+  'ZOE AI: Review applied. Names restored.',
+  "Jimmy: Ten minutes. Tell me you've got something.", "Bob: Draft's done. And their shell left the parent off the hook. It's in now.", 'Jimmy: …How?', 'Bob: ZOE AI.',
+];
+// Wording that no shipped file may carry any more (apostrophes normalised before the search).
+const DELETED_WORDING = [
+  'Looks like a term sheet. Finding the names, addresses, dates and ID numbers.', 'Key terms identified.', 'Searching 35,263 vault files',
+  'Found 128 files on this client in your vault.', "Searching 2,500 of your firm's golden templates", "Loaded your firm's merger agreement template and the conservative seller playbook.",
+  "Conservative to start. We'll see what they come back with.", "Filling in your firm's template from the term sheet.", 'Searching your local secure clause library',
+  'Top 10 matches.', "That's the one. Perfect.", 'Inserting now.', 'One last check before it goes out', 'Scrubbing the draft first.',
+  'Nothing has left this laptop yet', 'Adding 25 paragraphs from 6 vault files', "Wi-Fi no longer needed", 'The review flags:', 'Your vault agrees:',
+  "Applying the review's change", 'Putting the real names back, on this laptop.', 'Caught it.',
+];
 // Dates are scrubbed to one token (and only while scrubbed); dollar amounts are never touched or highlighted.
 const DATE_TOKEN = '[Month_Day_Year]';
 const REAL_DATES = ['November 6, 2026', 'January 15, 2027', 'December 31, 2027'];
@@ -206,6 +227,9 @@ async function startWatch(page) {
         clause: cl ? cl.textContent : null,
         typing: !!(cl && cl.classList.contains('is-typing')),
         inView: !!(cr && kr && cr.height > 0 && cr.bottom > kr.top + 1 && cr.top < kr.bottom - 1),
+        back: pg.querySelectorAll('.b-back').length,
+        ph: Array.from(pg.querySelectorAll('.zs-ph')).filter((e) => !e.closest('[hidden]')).length,
+        fixVis: Array.from(pg.querySelectorAll('.b-fix')).filter((e) => !e.hidden && !e.closest('[hidden]')).length,
         pane: !!(pane && !pane.hidden && w && pr.width > 0.15 * w.width && pr.height > 0.4 * w.height), // relative: the phone draws the same desk scaled down
         paneIn: !!(pr && w && pr.left >= w.left - 1 && pr.right <= w.right + 1 && pr.top >= w.top - 1 && pr.bottom <= w.bottom + 1),
         zoom: lit,
@@ -213,6 +237,40 @@ async function startWatch(page) {
       });
     }, 100);
   });
+}
+
+// A click gate: a real button laid over the drawn glowing one. Checks its name, size and that nothing competes with it.
+async function gateCheck(page, name, label) {
+  await page.waitForFunction((n) => window.__zoeHero.gesture === n, name, { timeout: 40000 });
+  const gate = page.locator(`.stage .cta-hit[data-gate="${name}"]`);
+  await expect(gate).toBeVisible();
+  expect(await gate.evaluate((e) => e.tagName)).toBe('BUTTON');
+  expect(await gate.evaluate((e) => (e.getAttribute('aria-label') || e.textContent).trim())).toBe(label);
+  const box = await gate.boundingBox();
+  expect(box.width, `${name} gate width`).toBeGreaterThanOrEqual(43.5);
+  expect(box.height, `${name} gate height`).toBeGreaterThanOrEqual(43.5);
+  const seen = await page.evaluate(() => {
+    const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && !e.closest('[hidden]'); };
+    return { hits: Array.from(document.querySelectorAll('.stage .cta-hit')).filter(vis).map((e) => e.dataset.gate), drawn: Array.from(document.querySelectorAll('.screen [data-cta]')).filter(vis).map((e) => e.dataset.cta) };
+  });
+  expect(seen.hits, 'one button at the gate').toEqual([name]);
+  expect(seen.drawn, 'one drawn button at the gate').toEqual([name]);
+  return gate;
+}
+
+// With nobody clicking, the gate lets the story go on by itself within a few seconds, a pointer pressing the button.
+async function gateAuto(page, name) {
+  const r = await page.evaluate((n) => new Promise((res) => {
+    const t0 = performance.now();
+    let pointer = false;
+    const iv = setInterval(() => {
+      if (document.querySelector('.cta-pointer.is-on')) pointer = true;
+      if (window.__zoeHero.gesture !== n) { clearInterval(iv); res({ ms: performance.now() - t0, pointer }); }
+    }, 40);
+  }), name);
+  expect(r.ms, `${name} gate waits for no more than 6 s`).toBeLessThan(6000);
+  expect(r.pointer, `${name}: the pointer pressed the button`).toBe(true);
+  return r;
 }
 
 // Waits until the journal holds a spoken line containing `frag`.
@@ -601,9 +659,9 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   expect(yellow[1]).toBeGreaterThan(150);
   expect(yellow[2]).toBeLessThan(yellow[0] - 60);
   await shot(page, info, 'act3-highlight');
-  // ZOE says the key terms are identified; they STAY yellow, and nothing switches to a placeholder.
-  await said(page, 'Key terms identified.', 30000);
-  await page.waitForTimeout(3000);
+  // ZOE's one line over the sweep; the terms STAY yellow, and nothing switches to a placeholder.
+  await said(page, 'Finding critical information in the term sheet.', 30000);
+  await page.waitForTimeout(800);
   const after = await page.evaluate(() => {
     const pg = document.querySelector('.screen .zs-page');
     return { hl: pg.querySelectorAll('[data-k].zs-hl').length, keys: pg.querySelectorAll('[data-k]').length, ph: pg.querySelectorAll('.zs-ph').length, texts: Array.from(pg.querySelectorAll('[data-k]')).map((e) => e.textContent) };
@@ -634,7 +692,7 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   const j = await page.evaluate(() => window.__journal);
   const lines = j.filter((e) => e.k === 'line').map((e) => e.v);
   const order = ['Bob (thinking): Picture taken. Into the laptop.', "Bob (thinking): I don't trust their Wi-Fi. Going local.", "Bob (thinking): Wi-Fi off. Let's go.",
-    'ZOE AI: Looks like a term sheet. Finding the names, addresses, dates and ID numbers.', 'ZOE AI: Key terms identified.'];
+    'ZOE AI: Finding critical information in the term sheet.'];
   const at = order.map((l) => lines.indexOf(l));
   if (!at.every((i) => i >= 0)) console.log('[journal]', JSON.stringify(lines));
   expect(at.every((i) => i >= 0)).toBe(true);
@@ -646,7 +704,7 @@ test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up
   expect(errors).toEqual([]);
 });
 
-test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain insertion, the scrub only at the review, the parent added, the flip back', async ({ page }, info) => {
+test('Acts III-V: three click gates, one line over the vault and templates, the draft kept yellow, the clause a plain insertion, the scrub, the parent added, the flip back', async ({ page }, info) => {
   test.setTimeout(300000);
   const errors = watchErrors(page);
   await open(page);
@@ -672,7 +730,8 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   const amountsMarked = () => page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page .zs-hl, .screen .zs-page .zs-ph, .screen .zs-page [data-k]')).filter((e) => /\$\d/.test(e.textContent)).map((e) => e.textContent));
 
   // The term sheet's figures (read at the end of the identification, while the term sheet is still on screen).
-  await said(page, 'Key terms identified.');
+  await said(page, 'Finding critical information in the term sheet.');
+  await page.waitForFunction(() => { const pg = document.querySelector('.screen .zs-page'); return pg.querySelectorAll('[data-k].zs-hl').length === pg.querySelectorAll('[data-k]').length; }, null, { timeout: 20000 });
   const termSheet = await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page [data-k]')).map((e) => e.textContent));
   // The term sheet's dollar amounts are plain text now (not marked terms): read them from the page.
   const termFigures = Array.from(new Set(await page.$eval('.screen .zs-page', (el) => el.textContent.match(/\$\d[\d,]*/g) || [])));
@@ -680,24 +739,26 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   expect(termSheet.filter((t) => /\$\d/.test(t))).toEqual([]);
   expect(await amountsMarked()).toEqual([]);
 
-  // Beat 3: Safari and the cockpit: the vault, then the firm's templates, all with the Wi-Fi OFF.
-  await said(page, 'Searching 35,263 vault files');
+  // Beat 3: Safari and the cockpit: one line over two quick screens (the vault, then the template search), all with the Wi-Fi OFF.
+  await said(page, 'Searching the vault for relevant information and potential templates.');
   await page.waitForFunction(() => /^Safari File Edit View History Bookmarks Window Help/.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
   expect(await screenText(page)).toContain('localhost');
-  expect(await screenText(page)).toContain('Matters');
-  await said(page, 'Found 128 files on this client in your vault.');
-  await said(page, 'Searching 2,500 of your');
-  await said(page, 'Loaded your firm');
+  expect(await wifi()).toEqual(['off']);
+
+  // Click one: the one template, with a real "Choose template" button over the glowing drawn one. A click goes on.
+  await said(page, 'Found a potential template.');
+  const gate1 = await gateCheck(page, 'template', 'Choose template');
   const tpl = await screenText(page);
   expect(tpl).toMatch(/ZOE read your search as/i); // the screen sets it in capitals
   expect(tpl).toContain('firm_merger_agreement_template_delaware.docx');
-  expect(tpl).toContain('playbook_seller_conservative.docx');
-  expect(await wifi()).toEqual(['off']);
+  expect(tpl).not.toContain('playbook_seller_conservative.docx'); // one choice only
   await shot(page, info, 'act4-templates');
+  await gate1.click();
+  await page.waitForFunction(() => window.__zoeHero.gesture !== 'template', null, { timeout: 3000 });
 
-  // Beat 4: the draft: the template fills in from the term sheet; every filled-in term lands yellow and stays yellow.
-  await said(page, "Filling in your firm's template from the term sheet.");
-  await page.waitForFunction(() => /^Word File Edit View Insert Format Tools Table Window Help/.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
+  // Beat 4: one line, one spinner turn, and Word shows the draft already filled in; every filled-in term is yellow and stays yellow.
+  await said(page, 'Drafting document.');
+  await page.waitForFunction(() => /^Word File Edit View Insert Format Tools Table Window Help/.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 8000 });
   expect(await screenText(page)).toContain('Agreement and Plan of Merger.docx');
   await page.waitForFunction(() => !document.querySelector('.screen .zs-page .b-fill') && document.querySelectorAll('.screen .zs-page .b-filled').length > 20, null, { timeout: 20000 });
   await page.waitForTimeout(800);
@@ -722,13 +783,16 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   const draftKept = await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page .b-filled[data-keep]')).map((e) => e.textContent));
   await shot(page, info, 'act4-draft');
 
-  // Beat 5: the clause: five local results, the preview, then Section 9.6 lands as red inserted text after Article IX's last section. Nothing is struck.
-  await said(page, 'Top 10 matches.');
-  await page.waitForTimeout(400);
+  // Beat 5: ZOE finds the clause; one clause, a real Insert button; Enter on it lands Section 9.6 as red inserted text after Article IX's last section. Nothing is struck.
+  await said(page, 'Finding the clause.');
+  await said(page, 'Found. Ready for you to insert.');
+  const gate2 = await gateCheck(page, 'insert', 'Insert');
   expect(await screenText(page)).toContain('Knowledge; No Sandbagging');
-  await said(page, "That's the one. Perfect.");
-  await page.waitForFunction(() => /Insert as tracked change/i.test(document.querySelector('.screen').innerText), null, { timeout: 8000 });
-  await said(page, 'Inserting now.');
+  expect(await page.locator('.screen .zs-page [data-id="s93new"]').count()).toBe(0); // not in until it is pressed
+  expect(await page.locator('.screen .zs-pane').isVisible()).toBe(true);
+  await shot(page, info, 'act4-insert-gate');
+  await gate2.focus();
+  await page.keyboard.press('Enter'); // the keyboard goes on too
   await page.waitForFunction(() => document.querySelector('.screen .zs-page [data-id="s93new"]'), null, { timeout: 10000 });
   await page.waitForFunction(() => !document.querySelector('.screen .zs-page [data-id="s93new"]').classList.contains('is-typing'), null, { timeout: 10000 });
   await page.waitForTimeout(600);
@@ -748,10 +812,8 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   expect(m.hl).toBeGreaterThanOrEqual(nonKept.length); // still yellow through the clause
   await shot(page, info, 'act4-inserted');
 
-  // Beat 6: the review is proposed; THEN the scrub: every yellow item turns into its placeholder, all at once.
-  await said(page, 'One last check before it goes out: a cloud AI review, with the names scrubbed.');
+  // Beat 6: a dialog offers the review with one button; THEN the scrub: every yellow item turns into its placeholder, all at once.
   m = await marks();
-  expect(m.ph).toBe(0); // still nothing scrubbed when the review is proposed
   expect(m.del).toBe(0); // still nothing struck
   await page.evaluate(() => {
     window.__sw = [];
@@ -761,7 +823,14 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
       if (n) window.__sw.push(n);
     }).observe(pg, { subtree: true, attributes: true, childList: true, characterData: true });
   });
-  await said(page, 'Scrubbing the draft first.');
+  await gateCheck(page, 'scrub', 'Scrub and send to cloud');
+  const dialog = await screenText(page);
+  expect(dialog).toContain('Scrub and send to cloud');
+  expect(await page.locator('.screen .zs-pane').isVisible()).toBe(true);
+  m = await marks();
+  expect(m.ph).toBe(0); // nothing is scrubbed before the button is pressed
+  await shot(page, info, 'act4-scrub-gate');
+  await gateAuto(page, 'scrub'); // nobody clicks: the pointer does
   await page.waitForFunction(() => document.querySelectorAll('.screen .zs-page .b-filled.zs-ph').length > 0, null, { timeout: 15000 });
   const sw = await page.evaluate(() => window.__sw);
   expect(sw[0]).toBe(nonKept.length); // the first visible change already covers every scrubbed term (the kept figures do not change)
@@ -793,57 +862,24 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
     return Array.from(document.querySelectorAll('.screen .zs-page .zs-ph')).filter((e) => !e.closest('[hidden]') && e.getBoundingClientRect().right > pg.right + 1).length;
   })).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await said(page, 'Scrubbed. Nothing has left this laptop yet.');
-  expect(await wifi()).toEqual(['off']);
+  await said(page, 'Scrubbed. Sending to cloud AI.');
   await shot(page, info, 'act4-scrubbed');
 
-  // Beat 7: one masked review: redacted with the Wi-Fi OFF, then ON only for the exchange; the cloud never speaks.
-  await page.waitForFunction(() => /^Safari /.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 10000 });
-  expect(await screenText(page)).toContain('merger_agreement_draft.docx');
-  if (isWide(info)) await page.waitForFunction(() => /13 section/i.test(document.querySelector('.screen').innerText), null, { timeout: 10000 });
-  await said(page, 'Adding 25 paragraphs from 6 vault files, scrubbed the same way.');
-  expect(await wifi()).toEqual(['off']);
-  await page.evaluate(() => {
-    const tick = () => {
-      if (document.querySelectorAll('.page6 i.is-on').length === 48) window.__litAt = performance.now(); else requestAnimationFrame(tick);
-    };
-    tick();
-  });
-  await page.waitForFunction(() => window.__litAt, null, { timeout: 15000 });
-  // The cockpit's Scrubbed copy agrees with the story: the date token, the real amounts, no real date.
-  await page.waitForFunction(() => document.querySelector('.screen .zs-safari').textContent.includes('[Month_Day_Year]'), null, { timeout: 20000 });
-  const copy = await page.$eval('.screen .zs-safari', (el) => el.textContent.replace(/\s+/g, ' ')); // the cockpit window (Word waits behind it)
-  expect(copy).toContain(DATE_TOKEN);
-  REAL_DATES.forEach((d) => expect(copy, `${d} is not in the Scrubbed copy`).not.toContain(d));
-  expect(copy).not.toMatch(/\bDate \d/);
-  // Amounts: the copy shows the agreement's opening (names, dates); any figure it does show is the draft's own real figure, in no chip.
-  const copyAmounts = copy.match(AMOUNT_RE) || [];
-  copyAmounts.forEach((f) => expect(draftFigures, `${f} in the Scrubbed copy is a real figure of the draft`).toContain(f));
-  expect(await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-safari .zs-ph, .screen .zs-safari mark')).filter((e) => /\$\d/.test(e.textContent)).length)).toBe(0);
-  expect(await wifi()).toEqual(['off']);
-  await page.waitForFunction(() => window.__journal.some((e) => e.k === 'wifi' && e.v === 'on'), null, { timeout: 10000 });
+  // Beat 7: the scrubbed draft goes out and the review comes back: the Wi-Fi is ON only for the exchange; the cloud never speaks.
+  await page.waitForFunction(() => window.__journal.some((e) => e.k === 'wifi' && e.v === 'on'), null, { timeout: 15000 });
   await expect(page.locator('.wifi-callout')).toHaveClass(/is-on/);
   await expect(page.locator('.wifi-callout .wc-text')).toHaveText('Wi-Fi ON');
   await expect(page.locator('.stream-label')).toHaveText('SCRUBBED INFORMATION · NO PII');
   await expect(page.locator('.stream-label')).toHaveClass(/is-on/);
-  await shot(page, info, 'act4-packet');
-  await page.waitForFunction(() => document.querySelectorAll('.page6.is-flying').length === 6, null, { timeout: 15000 });
-  expect(await page.locator('.page6 i.is-on').count()).toBe(48);
   expect(await page.locator('.stream-label').evaluate((e) => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(isWide(info) ? 16 : 12);
-  await said(page, 'Sent.');
   expect(await page.locator('.cloud-say').textContent()).toBe(''); // the cloud never speaks
   expect(await page.locator('.cloud-name').textContent()).toBe('any cloud AI the firm chooses');
-  await said(page, 'Received.');
-  await expect(page.locator('.wifi-callout')).toHaveClass(/is-off/);
+  await shot(page, info, 'act4-packet');
+  await page.waitForFunction(() => document.querySelector('.wifi-callout').classList.contains('is-off') && window.__journal.filter((e) => e.k === 'wifi').length === 3, null, { timeout: 15000 });
   expect(await wifi()).toEqual(['off', 'on', 'off']);
-  await said(page, 'Party 5 is an empty shell. Party 6 is its parent, and it is not in this deal.');
-  await said(page, 'Your vault agrees: the parent signed the earlier confidentiality agreement.');
-  expect(await screenText(page)).toMatch(/Who signed/);
-  await shot(page, info, 'act4-signatures');
 
   // Beat 8: the review's change lands in the document, still in placeholders: the parent joins as a party (insertions only).
-  await said(page, LINE_28);
-  await page.waitForFunction(() => /^Word /.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
+  await page.waitForFunction(() => /^Word /.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 20000 });
   await page.waitForFunction(() => Array.from(document.querySelectorAll('.screen .zs-page .b-fix')).some((f) => !f.hidden && f.querySelector('.b-name.zs-ph')), null, { timeout: 15000 });
   const fix = page.locator('.screen .zs-page .b-fix:not([hidden])').first();
   expect(await fix.evaluate(red)).toBe(true);
@@ -851,7 +887,13 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   // Once the camera has been through Article V, every insertion is in: the parties clause, the recital, Article IV's lead-in,
   // Article V and the signature page, and the cover; none in Articles VI to X (so none near the clause).
   await page.waitForFunction(() => Array.from(document.querySelectorAll('.screen .zs-page [data-id="art5lead"] .b-fix')).some((f) => !f.hidden), null, { timeout: 20000 });
-  await page.waitForTimeout(1500);
+  expect(await amountsMarked()).toEqual([]);
+  await shot(page, info, 'act5-changes');
+
+  // Beat 9: everything flips back: the placeholders become the real text, in yellow, with a green flash.
+  await said(page, 'Review applied. Names restored.');
+  await page.waitForTimeout(500);
+  // Every insertion is in (and stays, now yellow): the parties clause, the recital, Article IV's lead-in, Article V, the signature page and the cover; none in Articles VI to X.
   const fixes = await page.evaluate(() => {
     const pg = document.querySelector('.screen .zs-page');
     const kids = Array.from(pg.children);
@@ -869,18 +911,7 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   expect(fixes.inArt9).toBe(0);
   expect(fixes.text.trim()).toBe('Each of Parent and Merger Sub, jointly and severally, represents and warrants to the Company as follows:');
   expect(fixes.head).toMatch(/REPRESENTATIONS AND WARRANTIES OF PARENT AND MERGER SUB/);
-  expect(fixes.pre).toContain('Party 6, a Delaware limited liability company (“Parent”)');
-  m = await marks();
-  expect(m.ph).toBeGreaterThanOrEqual(nonKept.length); // everything is still a placeholder (the kept figures never were)
-  expect(await amountsMarked()).toEqual([]);
-  await shot(page, info, 'act5-changes');
-
-  // Beat 9: everything flips back: the placeholders become the real text, in yellow, with a green flash.
-  await said(page, 'Putting the real names back, on this laptop.');
-  await page.waitForFunction(() => document.querySelectorAll('.screen .zs-page .b-back').length > 0, null, { timeout: 10000 }); // the green flash
-  await shot(page, info, 'act5-flash');
-  await said(page, 'They left the parent off the hook. Caught it.');
-  await page.waitForTimeout(500);
+  expect(fixes.pre).toMatch(/(Party 6|Meridian Holdings LLC), a Delaware limited liability company \(“Parent”\)/); // a chip until the flip back, then the real name
   m = await marks();
   expect(m.ph).toBe(0);
   expect(m.del).toBe(0);
@@ -907,33 +938,22 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   await page.waitForFunction(() => window.__zoeHero.ended > 0, null, { timeout: 40000 });
   const j = await page.evaluate(() => window.__journal);
   const lines = j.filter((e) => e.k === 'line').map((e) => e.v);
-  const order = [
-    'ZOE AI: Key terms identified.',
-    'ZOE AI: Searching 35,263 vault files…', 'ZOE AI: Found 128 files on this client in your vault.', "ZOE AI: Searching 2,500 of your firm's golden templates…",
-    "ZOE AI: Loaded your firm's merger agreement template and the conservative seller playbook.", "Bob (thinking): Conservative to start. We'll see what they come back with.",
-    "ZOE AI: Filling in your firm's template from the term sheet.", 'Bob (thinking): Not bad for a first draft. But I need an anti-sandbagging clause.',
-    'ZOE AI: Searching your local secure clause library…', 'ZOE AI: Top 10 matches.', "Bob (thinking): That's the one. Perfect.", 'ZOE AI: Inserting now.',
-    'ZOE AI: One last check before it goes out: a cloud AI review, with the names scrubbed.', 'ZOE AI: Scrubbing the draft first.', 'ZOE AI: Scrubbed. Nothing has left this laptop yet.',
-    'ZOE AI: Adding 25 paragraphs from 6 vault files, scrubbed the same way.', 'ZOE AI: Sent.', "ZOE AI: Received. Wi-Fi no longer needed. We're locked down.",
-    'ZOE AI: The review flags: Party 5 is an empty shell. Party 6 is its parent, and it is not in this deal.',
-    'ZOE AI: Your vault agrees: the parent signed the earlier confidentiality agreement.',
-    `ZOE AI: ${LINE_28}`,
-    'ZOE AI: Putting the real names back, on this laptop.', 'Bob (thinking): They left the parent off the hook. Caught it.',
-    "Jimmy: Ten minutes. Tell me you've got something.", "Bob: Draft's done. And their shell left the parent off the hook. It's in now.", 'Jimmy: …How?', 'Bob: ZOE AI.'];
-  const at = order.map((l) => lines.indexOf(l));
-  if (!at.every((i) => i >= 0)) console.log('[journal]', JSON.stringify(lines));
-  expect(at.every((i) => i >= 0)).toBe(true);
-  expect(at).toEqual([...at].sort((a, b) => a - b));
+  // After the laptop opens the spoken lines are exactly these, in this order (nothing else is said).
+  const afterWifi = lines.slice(lines.indexOf("Bob (thinking): Wi-Fi off. Let's go.") + 1);
+  if (JSON.stringify(afterWifi) !== JSON.stringify(STORY_AFTER_LID)) console.log('[journal]', JSON.stringify(lines));
+  expect(afterWifi).toEqual(STORY_AFTER_LID);
   // The watcher (every 100 ms from the opening of the lid to the end): nothing struck, no "[Reserved", the clause's text one and the same
   // from its insertion to the end, the clause out of Word's window from beat 8 on, and the ZOE pane open inside Word's window whenever Word is up.
   const watch = await page.evaluate(() => window.__watch);
   expect(watch.length).toBeGreaterThan(300);
   expect(watch.filter((w) => w.struck > 0).length, 'samples with struck text').toBe(0);
+  expect(watch.some((w) => w.back > 0), 'the green flash of the flip back').toBe(true);
+  expect(watch.some((w) => w.fixVis > 0 && w.ph >= nonKept.length), "the review's change lands while everything is still a placeholder").toBe(true);
   expect(watch.filter((w) => w.reserved).length, 'samples showing [Reserved').toBe(0);
   const done = watch.filter((w) => w.clause !== null && !w.typing).map((w) => w.clause.replace(/\u2019/g, "'"));
   expect(done.length).toBeGreaterThan(50);
   expect(Array.from(new Set(done))).toEqual([CLAUSE_TEXT]);
-  const t28 = j.find((e) => e.k === 'line' && e.v === `ZOE AI: ${LINE_28}`).t;
+  const t28 = j.find((e) => e.k === 'line' && e.v === 'ZOE AI: Scrubbed. Sending to cloud AI.').t;
   const tEnd = j.find((e) => e.k === 'line' && e.v === 'Bob: ZOE AI.').t; // the story's last line; after it the page unlocks and the Full Word Support picture (clause in view) is the hero's own page
   const seen = watch.map((w, i) => ({ i, dt: Math.round(w.t - t28), w })).filter((x) => x.w.t >= t28 && x.w.t < tEnd && x.w.word && x.w.inView);
   if (seen.length) console.log('[clause in view]', JSON.stringify(seen.map((x) => ({ dt: x.dt, prev: watch[x.i - 1] && { dt: Math.round(watch[x.i - 1].t - t28), word: watch[x.i - 1].word, inView: watch[x.i - 1].inView }, next: watch[x.i + 1] && { dt: Math.round(watch[x.i + 1].t - t28), word: watch[x.i + 1].word, inView: watch[x.i + 1].inView } }))));
@@ -949,15 +969,13 @@ test('Acts III-V: vault and templates, the draft kept yellow, the clause a plain
   // The cloud does not speak, and no line says "frontier", "Adapt" or "morph".
   expect(lines.filter((l) => l.startsWith('Frontier AI'))).toEqual([]);
   expect(lines.filter((l) => /frontier|adapting|morph/i.test(l))).toEqual([]);
-  // Wi-Fi: ON only between "Redacting" (after the pages are redacted) and "Received".
+  // Wi-Fi: ON only between the scrub line and the review's return.
   const lineAt = (l) => j.find((e) => e.k === 'line' && e.v.includes(l)).t;
   const onAt = j.find((e) => e.k === 'wifi' && e.v === 'on').t;
   const offAt = j.filter((e) => e.k === 'wifi' && e.v === 'off').pop().t;
-  expect(onAt).toBeGreaterThan(lineAt('Adding 25 paragraphs'));
-  expect(onAt).toBeGreaterThan(await page.evaluate(() => window.__litAt)); // redaction finished while the Wi-Fi was OFF
-  expect(onAt).toBeLessThan(lineAt('Sent.'));
-  expect(offAt).toBeGreaterThan(lineAt('Sent.'));
-  expect(offAt).toBeLessThan(lineAt('Party 5 is an empty shell'));
+  expect(onAt).toBeGreaterThan(lineAt('Scrubbed. Sending to cloud AI.'));
+  expect(offAt).toBeGreaterThan(onAt);
+  expect(offAt).toBeLessThan(lineAt('Review applied. Names restored.'));
   expect(await page.evaluate(() => document.documentElement.classList.contains('intro-done'))).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -1185,9 +1203,10 @@ test('the hero is its own screen: wheel, touch and keys do not scroll it', async
   await shot(page, info, 'hero-locked');
 });
 
-// Text at half speed and every gesture wait at 3x (18 s for the phone, 12 s for each later one). Measured
-// 179.0 s on the phone size with the full agreement and the clause-library beat (2026-10-22, midday).
+// Nobody touches anything: the opening's gestures wait for their idle clock, and the three click gates press themselves.
 const UNTOUCHED_LIMIT_MS = 200000;
+// From the lid's opening to the close, with nobody clicking (the three automatic clicks included).
+const AFTER_LID_LIMIT_MS = 50000;
 
 test('untouched: the story plays through by itself (recorded), with the opening timed', async ({ browser }, info) => {
   test.setTimeout(360000);
@@ -1233,8 +1252,11 @@ test('untouched: the story plays through by itself (recorded), with the opening 
     fs.renameSync(await video.path(), path.join(SHOTS, `${info.project.name}-run-untouched.webm`));
     fs.rmSync(dir, { recursive: true, force: true });
   }
-  expect(metrics.untouched_ms).toBeGreaterThan(115000);
+  expect(metrics.untouched_ms).toBeGreaterThan(40000);
   expect(metrics.untouched_ms).toBeLessThan(UNTOUCHED_LIMIT_MS);
+  const lidOpen = first('lid-open');
+  metrics.after_lid_ms = Math.round(metrics.untouched_ms - lidOpen);
+  expect(metrics.after_lid_ms, 'from the lid opening to the close, unattended').toBeLessThan(AFTER_LID_LIMIT_MS);
 });
 
 test('keyboard: Tab reaches each gesture and Enter performs it; the skip control takes Enter', async ({ page }, info) => {
@@ -1260,22 +1282,26 @@ test('keyboard: Tab reaches each gesture and Enter performs it; the skip control
   expect(await hero(page, 'ability')).toBe('word');
 });
 
-test('reduced motion: five stops, advanced by the Next pill, ending on the hero\'s own page', async ({ page }, info) => {
+test('reduced motion: seven stops, advanced by the Next pill (the three gates included), ending on the hero\'s own page', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page);
   const stops = [];
-  for (let i = 1; i <= 8; i += 1) {
+  const gates = [];
+  for (let i = 1; i <= 10; i += 1) {
     await page.waitForFunction(() => document.querySelector('.pills .pill') || window.__zoeHero.introDone, null, { timeout: 20000 });
     await page.waitForTimeout(300);
     await shot(page, info, `reduced-motion-${i}`);
     const next = page.locator('.pill', { hasText: 'Next' });
     if (!(await next.count())) break;
     stops.push(await page.locator('#live').textContent());
+    gates.push(await page.evaluate(() => Array.from(document.querySelectorAll('.stage .cta-hit')).filter((e) => !e.hidden && e.getBoundingClientRect().width > 0).map((e) => e.dataset.gate)));
     await next.click();
   }
-  // Stops: the ambush, the identification, the clause (before the review), the review while the Wi-Fi is ON, the flip back.
-  expect(stops.length).toBe(5);
-  [/Perfect opportunity/, /Key terms identified/, /Inserting now/, /Sent\./, /They left the parent off the hook/].forEach((re, i) => expect(stops[i]).toMatch(re));
+  // Stops: the ambush, the one line over the term sheet, the template gate, the clause gate, the scrub gate, the scrub and send, the flip back.
+  expect(stops.length).toBe(7);
+  [/Perfect opportunity/, /Finding critical information in the term sheet\./, /Found a potential template\./, /Found\. Ready for you to insert\./, /Found\. Ready for you to insert\./, /Scrubbed\. Sending to cloud AI\./, /Review applied\. Names restored\./].forEach((re, i) => expect(stops[i]).toMatch(re));
+  // The three click gates stand at stops 3, 4 and 5, and the Next pill goes through each.
+  expect(gates.slice(2, 5)).toEqual([['template'], ['insert'], ['scrub']]);
   // The Next path ends in the same state as the skip: the hero's own page. Reduced motion never locks the page.
   expect(await hero(page, 'act')).toBe(6);
   expect(await hero(page, 'introDone')).toBe(true);
@@ -1300,14 +1326,15 @@ test('no JavaScript: open laptop and the five acts as text, matching hero.js', a
   // Every spoken line has its own key (a repeated key silently replaces an earlier line).
   const keys = Array.from(block.matchAll(/^\s+(\w+):\s+['"]/gm)).map((m) => m[1]);
   expect(keys.filter((k, i) => keys.indexOf(k) !== i)).toEqual([]);
-  expect(lines.length).toBeGreaterThan(20);
+  expect(lines.length).toBeGreaterThan(15);
   lines.forEach((l) => expect(noscript).toContain(l));
   // The four abilities' descriptions are real text in the page without JavaScript.
   const abilities = await page.evaluate(() => document.querySelector('.abilities').textContent);
   ABILITIES.forEach((a) => { expect(abilities).toContain(a.name); a.text.forEach((t) => expect(abilities.replace(/\u2019/g, "'")).toContain(t)); });
   // One name in the text version too: a bare "ZOE" nowhere, the speaker label "ZOE AI", and the last line.
   expect(noscript.match(/\bZOE\b(?! AI)/g)).toBeNull();
-  expect(noscript).toContain('ZOE AI: Looks like a term sheet. Finding the names, addresses, dates and ID numbers.');
+  expect(noscript).toContain('ZOE AI: Finding critical information in the term sheet.');
+  ['the Choose template button', 'the Insert button', 'the Scrub and send to cloud button'].forEach((t) => expect(noscript).toContain(t));
   expect(noscript).toContain('Bob: ZOE AI.');
   const head = await page.evaluate(() => [document.title, ...Array.from(document.querySelectorAll('meta[name=description],meta[property^="og:"],meta[name^="twitter:"]')).map((m) => m.content)]);
   head.forEach((t) => expect(t).not.toMatch(/\bZOE\b(?! AI)/));
@@ -2132,14 +2159,13 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
     const zoom = async () => { let prev = await read(); for (let i = 0; i < 10; i += 1) { await page.waitForTimeout(500); const now = await read(); if (now === prev) return now; prev = now; } return prev; }; // settled: the zoom animates
     const pane = () => page.evaluate(() => { const w = document.querySelector('.screen .zs-word').getBoundingClientRect(); const e = document.querySelector('.screen .zs-pane'); const r = e.getBoundingClientRect(); return !e.hidden && r.width > 0.15 * w.width && r.height > 0.4 * w.height && r.left >= w.left - 1 && r.right <= w.right + 1 && r.bottom <= w.bottom + 1; });
     const z = {};
-    await said(page, 'Key terms identified.', 40000);
+    await said(page, 'Finding critical information in the term sheet.', 40000);
     await page.waitForTimeout(1500);
     z.identified = await zoom(); z.paneIdentified = await pane();
-    await said(page, "Filling in your firm's template from the term sheet.", 60000);
+    await said(page, 'Drafting document.', 60000);
     await page.waitForFunction(() => !document.querySelector('.screen .zs-page .b-fill') && document.querySelectorAll('.screen .zs-page .b-filled').length > 20, null, { timeout: 30000 });
     await page.waitForTimeout(1200);
     z.draft = await zoom(); z.paneDraft = await pane();
-    await said(page, 'Inserting now.', 60000);
     await page.waitForFunction(() => { const c = document.querySelector('.screen .zs-page [data-id="s93new"]'); return c && !c.classList.contains('is-typing'); }, null, { timeout: 20000 });
     await page.waitForTimeout(1200);
     z.clause = await zoom(); z.paneClause = await pane();
@@ -2156,6 +2182,41 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
   Object.entries(got.desktop).forEach(([k, v]) => { if (k.startsWith('pane')) expect(v, k).toBe(true); });
   expect(got.desktop.fullWord).toBe('130%');
   fs.writeFileSync(path.join(SHOTS, 'r6-zoom.json'), JSON.stringify(got, null, 2));
+});
+
+test('click gates, unattended: three real buttons, each presses itself, nothing else competes, and the story is short', async ({ page }, info) => {
+  test.setTimeout(150000);
+  const errors = watchErrors(page);
+  await open(page);
+  await runTo(page, 'lid');
+  await page.waitForFunction(() => window.__zoeHero.framesReady, null, { timeout: 20000 });
+  const t0 = await page.evaluate(() => { window.__zoeHero.perform('tap'); return performance.now(); });
+  const gates = [['template', 'Choose template'], ['insert', 'Insert'], ['scrub', 'Scrub and send to cloud']];
+  const waits = [];
+  for (const [name, label] of gates) {
+    await gateCheck(page, name, label);
+    const r = await gateAuto(page, name); // nobody clicks, taps or presses a key
+    waits.push(Math.round(r.ms));
+  }
+  await page.waitForFunction(() => window.__zoeHero.ended > 0, null, { timeout: 60000 });
+  const total = await page.evaluate((t) => performance.now() - t, t0);
+  metrics.gates_auto_ms = waits;
+  metrics.after_lid_unattended_ms = Math.round(total);
+  expect(total, 'from the lid opening to the close, nobody touching anything').toBeLessThan(AFTER_LID_LIMIT_MS + 3000); // measured after the close, so a little over the story itself
+  expect(await page.evaluate(() => document.querySelectorAll('.stage .cta-hit').length === 0 || Array.from(document.querySelectorAll('.stage .cta-hit')).every((e) => e.hidden || e.getBoundingClientRect().width === 0))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('the story no longer carries the deleted wording, in any shipped file', async ({}, info) => {
+  test.skip(!isWide(info), 'checked once');
+  const files = ['index.html', 'hero.js', 'styles.css', 'agreement.js', 'compare.js', 'screens.js', 'screens.css', 'book-demo.html', 'nda.html', 'drawer.css', 'nav.css', 'pages.css'];
+  const hits = [];
+  for (const f of files) {
+    if (!fs.existsSync(path.join(ROOT, f))) continue;
+    const text = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\u2019|&rsquo;|&#39;|&#x27;/g, "'").replace(/\\'/g, "'").replace(/\u2026|&hellip;/g, '…').replace(/data:image\/[a-z]+;base64,[^"')]+/g, '');
+    DELETED_WORDING.forEach((w) => { if (text.includes(w)) hits.push(`${f}: ${w}`); });
+  }
+  expect(hits).toEqual([]);
 });
 
 test('first paint on throttled 4G, total transfer', async ({ page }) => {

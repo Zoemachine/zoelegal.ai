@@ -125,6 +125,7 @@
     },
     clauses: { query: 'anti-sandbagging', ideas: ['anti-sandbagging'], agreementType: 'Agreement and Plan of Merger', context: 'in Article IX — Indemnification', term: 'Defined term: Buyer Indemnified Party', results: CLAUSES },
     insertPreview: { title: CLAUSES[0].title, source: CLAUSES[0].source, text: 'Section 9.3 Knowledge; No Sandbagging. ' + KNOWLEDGE_TEXT, where: 'Below ¶ this paragraph' },
+    found: { query: 'anti-sandbagging', source: CLAUSES[0].source, text: CLAUSES[0].text },
     afterInsert: { title: CLAUSES[0].title, source: CLAUSES[0].source, text: CLAUSES[0].text, where: 'below ¶ this paragraph' },
     adapt: { title: CLAUSES[1].title, source: CLAUSES[1].source, segments: ADAPT_SEGMENTS },
     check: {
@@ -223,6 +224,11 @@
     `<div class="zs-disclose">${I.chevR}Parties · ${esc((d.parties || PANE_DEFAULTS.home.parties).join(', '))}</div>` +
     `<div class="zs-disclose">${I.chevR}Similar documents · ${esc(d.similar == null ? 3 : d.similar)}</div>` + scopeRow(matter);
 
+  // A click target inside the drawn screen: a real button (glowing), out of the tab order until desk.gate() arms it.
+  // data-cta and data-zs-gate are both stable hooks for the same button.
+  const CTA = { 'choose-template': 'template', 'insert-clause': 'insert', 'scrub-send': 'scrub' };
+  const gateBtn = (name, label, cls, icon) => `<button type="button" class="zs-gbtn zs-cta zs-glow ${cls}" data-cta="${CTA[name]}" data-zs-gate="${name}" tabindex="-1">${icon || ''}<span>${esc(label)}</span></button>`;
+
   const PANE = {
     home(d, ctx) {
       d = Object.assign({}, PANE_DEFAULTS.home, d);
@@ -238,6 +244,13 @@
         (d.context ? `<div class="zs-cap">${esc(d.context)}</div>` : '') + (d.term ? `<span class="zs-pill" style="display:inline-block;margin-top:3px">${esc(d.term)}</span>` : '') +
         `<div class="zs-ideas"><div class="zs-row">Ideas: ${(d.ideas || []).map((t, i) => `<span class="zs-idea"><b>${i + 1}</b>${esc(t)}</span>`).join('')}</div>Agreement type:<br><span class="zs-atype">${esc(d.agreementType)}</span></div>` + res };
     },
+    found(d) {
+      d = Object.assign({}, PANE_DEFAULTS.found, d);
+      return { tab: 'home', focus: '.zs-found', html: searchBox(d.query) + `<div class="zs-h">For your search <span class="zs-count">1</span></div>` +
+        `<div class="zs-card zs-found">${d.title ? `<div class="zs-ctitle">${esc(d.title)}</div>` : ''}<div class="zs-csrc2">${esc(d.source)}</div><div class="zs-ctext">${esc(d.text)}</div>` +
+        `<div class="zs-acts">${gateBtn('insert-clause', d.button || 'Insert', 'zs-btn is-primary', I.insert)}</div></div>` };
+    },
+    clauseFound(d, ctx) { return PANE.found(d, ctx); },
     insertPreview(d) {
       d = Object.assign({}, PANE_DEFAULTS.insertPreview, d);
       const n = words(d.text);
@@ -321,7 +334,12 @@
       if (d.loading) return { nav: 'templates', matter: d.library, html: `<div class="zs-pg">${head}<div class="zs-skel"></div><div class="zs-skel"></div><div class="zs-skel" style="height:110px"></div></div>` };
       const ideaChip = (t, i, cls = 'b') => `<span class="zs-chip ${cls} sm"><span class="zs-num">${i + 1}</span>&nbsp;${esc(t)}</span>`;
       const cls = ['b', 'p', 'g'];
-      const res = (d.results || []).map((r, ri) => {
+      const one = d.single || d.choose;
+      const list = one ? (d.results || []).slice(0, 1) : (d.results || []);
+      if (one) d.count = list.length;
+      const foot = d.choose === 'drafting' ? '<div class="zs-rfoot zs-drafting"><span class="zs-spin"></span>Drafting document…</div>'
+        : `<div class="zs-rfoot">${gateBtn('choose-template', d.button || 'Choose template', 'zs-cbtn pri', I.check)}</div>`;
+      const res = list.map((r, ri) => {
         const covers = (d.ideas || []).map((t, i) => (r.covers && r.covers[i] ? ideaChip(t, i, cls[i % 3]) : chip('a sm', `not found: ${t}`))).join('');
         const p = r.passage;
         let ptext = p ? esc(p.text) : '';
@@ -329,6 +347,7 @@
         return `<div class="zs-res"><div class="zs-rhead"><span class="zs-rn">${ri + 1}</span>${I.doc.replace('<svg', '<svg style="width:13px;height:13px;color:#6d6b64"')}<span class="zs-rt">${esc(r.file)}</span><span class="zs-match"><i><b style="width:${r.match}%"></b></i>${r.match}% match</span></div>` +
           `<div class="zs-row" style="gap:5px;margin-bottom:5px">${r.match === 100 ? chip('g sm', 'same type', I.check) : ''}${chip('g sm', `governed by ${r.jurisdiction} law`, I.bank)}</div>` +
           `<div class="zs-kv">Type: <b>${esc(r.type)}</b></div><div class="zs-kv">Signing parties: ${esc(r.parties)}</div><div class="zs-kv">Jurisdiction: <b>${esc(r.jurisdiction)}</b></div>` +
+          (one && ri === 0 ? foot : '') +
           `<div class="zs-covers">${I.list.replace('<svg', '<svg style="width:12px;height:12px"')}COVERS ${covers}</div>` +
           (p ? `<div class="zs-passage"><div class="zs-ptitle">${ideaChip(d.ideas[p.idea - 1], p.idea - 1)}<b>${esc(p.heading)}</b><span style="color:#6d6b64">${esc(p.path)}</span>${chip('w sm', 'Body')}<span class="zs-open">open in document ›</span></div><div class="zs-ptext">${esc(p.heading)} ${ptext}</div></div>` : '') + '</div>';
       }).join('');
@@ -454,6 +473,7 @@
             <div class="zs-content"><div class="zs-cview"></div></div></div>
         </div>
       </div>
+      <div class="zs-mback"><div class="zs-modal"></div></div>
     </div></div>`);
     container.appendChild(root);
     const desk = root.firstElementChild;
@@ -489,11 +509,13 @@
         if (!r || !cw) return;
         if (o.cropAspect !== false) container.style.aspectRatio = (r.w / r.h).toFixed(4);
         scale = cw / r.w;
+        desk.style.setProperty('--zs-inv', (1 / scale).toFixed(3));
         desk.style.transform = `translate(${(-r.x * scale).toFixed(2)}px, ${(-r.y * scale).toFixed(2)}px) scale(${scale})`;
         return;
       }
       if (!cw || !ch) return;
       scale = cw / W;
+      desk.style.setProperty('--zs-inv', (1 / scale).toFixed(3));
       desk.style.height = Math.round(ch / scale) + 'px';
       desk.style.transform = `scale(${scale})`;
     }
@@ -625,6 +647,7 @@
       $('.zs-pt-bell').classList.toggle('is-on', r.tab === 'bell');
       $('.zs-badge').textContent = r.badge || 8;
       const tok = ++paneTok;
+      ungateIn(pview);
       if (opts && opts.instant) { pview.innerHTML = r.html; reveal(pview, r.focus); return Promise.resolve(); }
       return swap(pview, r.html, () => paneTok, tok, r.focus);
     }
@@ -640,8 +663,75 @@
       root.querySelectorAll('.zs-nl').forEach((n) => n.classList.toggle('is-on', n.dataset.nav === r.nav));
       $('.zs-swname').textContent = r.matter || matter;
       const tok = ++viewTok;
+      ungateIn(cview);
       if (opts && opts.instant) { cview.innerHTML = r.html; cview.scrollTop = 0; return Promise.resolve(); }
       return swap(cview, r.html, () => viewTok, tok);
+    }
+
+    // ----- Click targets -----
+    // gate(name) arms the button with data-zs-gate="name": it joins the tab order, glows, and is the one part of the
+    // desk exposed to assistive technology (the root's aria-hidden is lifted and every sibling along its path hidden).
+    let gated = null, hiddenByGate = [];
+    function ungate() {
+      hiddenByGate.forEach((n) => n.removeAttribute('aria-hidden'));
+      hiddenByGate = [];
+      if (gated) gated.tabIndex = -1;
+      gated = null;
+      root.setAttribute('aria-hidden', 'true');
+    }
+    function gate(name, opts) {
+      ungate();
+      const b = root.querySelector(`[data-zs-gate="${name}"]`);
+      if (!b) return null;
+      b.classList.toggle('zs-glow', !opts || opts.glow !== false);
+      b.tabIndex = 0;
+      root.removeAttribute('aria-hidden');
+      for (let n = b; n !== root; n = n.parentElement) {
+        for (const sib of n.parentElement.children) {
+          if (sib !== n && !sib.hasAttribute('aria-hidden')) { sib.setAttribute('aria-hidden', 'true'); hiddenByGate.push(sib); }
+        }
+      }
+      gated = b;
+      if (!opts || opts.scroll !== false) showInView(b);
+      return b;
+    }
+    // Scroll the pane or cockpit view holding el so el sits fully in view (near the bottom, the text above it showing), without moving any
+    // other ancestor; a focused control that is already visible does not make the browser scroll the drawing.
+    function showInView(el) {
+      const sc = [pview, cview].find((v) => v.contains(el));
+      if (!sc) return;
+      let top = 0;
+      for (let n = el; n && n !== sc; n = n.offsetParent) { top += n.offsetTop; if (!sc.contains(n.offsetParent)) { top -= sc.offsetTop; break; } }
+      const vis = sc.scrollTop, h = sc.clientHeight, pad = 12 + 14 / (scale || 1); // room for the ring
+      if (top - pad < vis || top + el.offsetHeight + pad > vis + h) sc.scrollTop = Math.max(0, top + el.offsetHeight + pad - h);
+    }
+    const ungateIn = (el) => { if (gated && el.contains(gated)) ungate(); };
+
+    // ----- Dialog (over the front window) -----
+    const mback = $('.zs-mback'), modal = $('.zs-modal');
+    const DIALOG_DEFAULTS = { title: 'Send for review', sub: 'Agreement and Plan of Merger', text: 'Only the scrubbed copy leaves this computer.', button: 'Scrub and send to cloud' };
+    function openDialog(data, opts) {
+      const d = Object.assign({}, DIALOG_DEFAULTS);
+      Object.keys(data || {}).forEach((k) => { if (data[k] !== undefined) d[k] = data[k]; });
+      ungateIn(modal);
+      modal.innerHTML = `<div class="zs-mhead"><span class="zs-micon">${I.shield}</span><div><div class="zs-mtitle">${esc(d.title)}</div>${d.sub ? `<div class="zs-msub">${esc(d.sub)}</div>` : ''}</div></div>` +
+        (d.text ? `<div class="zs-mbody">${esc(d.text)}</div>` : '') +
+        `<div class="zs-mfoot">${gateBtn('scrub-send', d.button, 'zs-cbtn pri', I.send)}</div>`;
+      const instant = (opts && opts.instant) || !motion();
+      if (instant) mback.classList.add('zs-now');
+      // over Word with the pane open, the sheet centres on the document and the pane stays visible (dimmed) beside it
+      mback.classList.toggle('zs-mdoc', app === 'word' && !$('.zs-pane').hidden);
+      mback.classList.add('is-open');
+      if (instant) { void mback.offsetWidth; mback.classList.remove('zs-now'); return Promise.resolve(); }
+      return new Promise((res) => setTimeout(res, 220));
+    }
+    function closeDialog(opts) {
+      ungateIn(modal);
+      const instant = (opts && opts.instant) || !motion();
+      if (instant) mback.classList.add('zs-now');
+      mback.classList.remove('is-open');
+      if (instant) { void mback.offsetWidth; mback.classList.remove('zs-now'); return Promise.resolve(); }
+      return new Promise((res) => setTimeout(res, 220));
     }
 
     // initial state: drawn at once (no fade on mount)
@@ -665,6 +755,10 @@
       setClock(v) { clockVal = v == null ? 'live' : v; tickClock(); },
       setMatter: setMatterName,
       refit: fit,
+      gate, ungate,
+      get gateEl() { return gated; },
+      openDialog, closeDialog,
+      get dialogEl() { return modal; },
       destroy() { alive = false; clearTimeout(clockTimer); if (ro) ro.disconnect(); root.remove(); },
       word: {
         get pageEl() { return page; },
@@ -672,6 +766,7 @@
         get paneEl() { return pview; },
         get zoom() { return zoom; },
         setDocument, setZoom, scrollTo, setPane, setPaneOpen,
+        setDialog(d, opts) { return d ? openDialog({ title: d.title, sub: d.sub || '', text: d.body != null ? d.body : d.text, button: d.button }, opts) : closeDialog(opts); },
       },
       cockpit: { get viewEl() { return cview; }, scrollEl: cview, setView },
     };
@@ -696,6 +791,9 @@
     'cockpit-verify-short': { app: 'safari', view: ['verify', { items: COCK_DEFAULTS.verify.items.slice(1, 4) }] },
     'cockpit-signatures': { app: 'safari', view: ['signatures'] },
     'cockpit-settings': { app: 'safari', view: ['settings'] },
+    'cockpit-template-choose': { app: 'safari', view: ['templates', { single: true }], glow: 'choose-template' },
+    'word-found': { app: 'word', doc: MERGER_HTML, title: 'Agreement and Plan of Merger', pane: ['found'], glow: 'insert-clause' },
+    'word-scrub-send': { app: 'word', doc: MERGER_TRACKED_HTML, title: 'Agreement and Plan of Merger', pane: ['afterInsert'], dialog: {}, glow: 'scrub-send' },
   };
   function frame(container, preset, opts) {
     const p = PRESETS[preset];
@@ -714,6 +812,8 @@
       const cv = desk.cockpit.scrollEl, el = sel && cv.querySelector(sel);
       if (el) { let top = 0, n = el; while (n && n !== cv && cv.contains(n)) { top += n.offsetTop; n = n.offsetParent; } cv.scrollTop = Math.max(0, top - 14); }
     }
+    if (p.dialog) desk.openDialog(p.dialog, { instant: true });
+    if (p.glow) { const b = container.querySelector(`[data-zs-gate="${p.glow}"]`); if (b) b.classList.add('zs-glow'); }
     desk.refit();
     return desk;
   }
