@@ -128,8 +128,19 @@ function track(event, data) {
   const TYPE_MS = 24;          // per character
   const PAGE_FLIGHT_MS = 700;  // a page's trip to the cloud (styles.css .page6.is-flying)
   const PAGE_FLY_GAP_MS = 100; // the redacted pages leave one after another
-  const HOLD = 2;              // reading time: every spoken line and the pauses between beats
-  const MOTION = 1;            // the page runs, the streams, the card flight, the clause typing in
+  let HOLD = 2;                // reading time: every spoken line and the pauses between beats
+  let MOTION = 1;              // the page runs, the streams, the card flight, the clause typing in
+  // A stretch over a stretch of the story: holds, typing, page runs, scrolls, zooms and camera moves together
+  // (styles.css reads --pace for the camera and the page flight). 1 is the base pace.
+  let pace = 1;
+  const PACE_LOCAL = 1.12;     // from the term sheet scan to the third click
+  const PACE_CLOUD = 1.3;      // from the third click to the close
+  function setPace(k) {
+    pace = k;
+    HOLD = 2 * k;
+    MOTION = k;
+    stage.style.setProperty('--pace', String(k));
+  }
   // Portrait round trip: where the screen's top edge sits, the cloud's height, and the gap for the stream.
   const PORTRAIT_CLOUD_Y = 28;     // the cloud's top edge during the round trip
   const PORTRAIT_CLOUD_H = 150;
@@ -311,6 +322,7 @@ function track(event, data) {
     run.timers.clear();
     clearTimeout(idleTimer);
     gestureNow = null;
+    setPace(1);
     if (pills) pills.innerHTML = '';
     if (typeof clearCta === 'function') clearCta();
   }
@@ -380,7 +392,7 @@ function track(event, data) {
           i += 1;
           c = 0;
         }
-        const t = setTimeout(tick, TYPE_MS);
+        const t = setTimeout(tick, TYPE_MS * pace);
         r.timers.add(t);
       };
       tick();
@@ -1525,7 +1537,7 @@ function track(event, data) {
   const POST_DESK_W = 1100;  // after the introduction: the laptop is drawn smaller
   function readingLayout(on, zoom) {
     desk.word.setPaneOpen(true);
-    return desk.word.setZoom(zoom, RM ? 0 : 700);
+    return desk.word.setZoom(zoom, RM ? 0 : 700 * MOTION);
   }
 
   const noop = () => Promise.resolve();
@@ -1896,9 +1908,9 @@ function track(event, data) {
     for (const page of pages) {
       page.classList.add('is-flying');
       page.style.transform = `translate(${flight.x}px, ${flight.y}px) scale(0.55)`;
-      await wait(PAGE_FLY_GAP_MS);
+      await wait(PAGE_FLY_GAP_MS * MOTION);
     }
-    await wait(PAGE_FLIGHT_MS);
+    await wait(PAGE_FLIGHT_MS * MOTION);
   }
 
   // ---------- The agreement (agreement.js, loaded when the laptop opens) ----------
@@ -1991,6 +2003,7 @@ function track(event, data) {
 
   // 2. The term sheet: the page runs down and the critical terms light up yellow. One line, no list.
   async function beatIdentify() {
+    setPace(PACE_LOCAL);
     setAct(3);
     zoeWorking(true);
     const scan = zoeSay('scan', false);
@@ -2078,6 +2091,7 @@ function track(event, data) {
   // 7. The scrub plays at the top of the draft (yellow terms to placeholders), the scrubbed copy goes out and
   // the answer comes back, with Wi-Fi on only for the exchange.
   async function beatReview() {
+    setPace(PACE_CLOUD);
     setAct(4);
     await topOfDraft(500);
     alive();
@@ -2185,8 +2199,8 @@ function track(event, data) {
   // The story stops on a glowing button in the screen (screens.js draws it, marked data-cta) and goes on
   // when the visitor clicks or taps it, or presses Enter or Space. The click lands on a real <button> laid
   // over the drawn one, at least 44 px each way, so a phone's small screen still has a fair target. After
-  // CLICK_IDLE_MS without a click a pointer glides to the button and clicks it, about 3 s after it showed.
-  const CLICK_IDLE_MS = 2200;
+  // CLICK_IDLE_MS without a click a pointer glides to the button and clicks it, about 8 s after it showed.
+  const CLICK_IDLE_MS = 7200;
   const CTA_MIN = 44;
   let ctaGate = null;   // { name, btn, raf }
   const ctaTarget = (name) => (desk && desk.el ? desk.el.querySelector(`[data-cta="${name}"]`) : null);
@@ -2445,6 +2459,7 @@ function track(event, data) {
     await beatRestore();   // 9. the names come back, yellow
 
     // Act V — ten minutes are up
+    setPace(1);
     setAct(5);
     cloud.classList.add('is-out');
     stream.classList.remove('is-on');
