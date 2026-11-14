@@ -87,7 +87,7 @@ const AMOUNT_RE = /\$\d[\d,]*/g;
 const SITE_FILES = ['index.html', 'styles.css', 'hero.js', 'agreement.js', 'compare.js', 'drawer.css', 'nav.css', 'pages.css', 'book-demo.html', 'nda.html',
   'tools/playwright.config.js', 'tools/make-site-images.js', 'tools/make-agreement.js', 'tools/record-gif.js'];
 // Below the hero, in order: the comparison first.
-const SECTIONS = ['triage', 'dataflow', 'evidence', 'why', 'how', 'founder', 'advisory', 'contact', 'site-footer'];
+const SECTIONS = ['triage', 'dataflow', 'evidence', 'why', 'how', 'founder', 'partner', 'advisory', 'contact', 'site-footer'];
 
 // All-caps words allowed on screen: AI and PII, plus names, mask tokens and emphasis that are not acronyms.
 const CAPS_OK = new Set(['AI', 'PII', 'ZOE', 'LLC', 'LP', 'EIN', 'ORG', 'PERSON', 'ADDRESS', 'ON', 'OFF', 'NO',
@@ -1375,7 +1375,7 @@ test('below the hero: every section, both modals, numbers and image sizes', asyn
     return c.textContent;
   }).join(' '), SECTIONS);
   const nums = Array.from(new Set(text.replace(/\[[A-Z]+_\d+\]/g, '').match(/\$?\d[\d,.]*(\s?GB|%\+?)?/g) || []));
-  const allowed = ['99%+', '99%', '90%', '16 GB', '$0', '01', '02', '03', '2026'];
+  const allowed = ['99%+', '99%', '90%', '16 GB', '$0', '01', '02', '03', '2026', '25', '11,995,609']; // 25 years and the patent number in the partner's chief executive's biography
   expect(nums.filter((n) => !allowed.includes(n))).toEqual([]);
   await expect(page.locator('#why-h')).toHaveText('Why ZOE AI.');
   for (const id of ['privacy', 'terms']) {
@@ -2185,6 +2185,43 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
   Object.entries(got.desktop).forEach(([k, v]) => { if (k.startsWith('pane')) expect(v, k).toBe(true); });
   expect(got.desktop.fullWord).toBe('130%');
   fs.writeFileSync(path.join(SHOTS, 'r6-zoom.json'), JSON.stringify(got, null, 2));
+});
+
+test('the audit and control partner: after the founder, before the advisory board, its text word for word, both images, the link', async ({ page }, info) => {
+  const errors = watchErrors(page);
+  await page.goto('/#partner');
+  await page.waitForFunction(() => window.__zoeHero, null, { timeout: 15000 });
+  await page.locator('#partner').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1500);
+  const order = await page.evaluate(() => Array.from(document.querySelectorAll('main > section.sec')).map((e) => e.id));
+  expect(order.indexOf('partner')).toBe(order.indexOf('founder') + 1);
+  expect(order.indexOf('advisory')).toBe(order.indexOf('partner') + 1);
+  const norm = (t) => t.replace(/\u2019/g, "'").replace(/\s+/g, ' ').trim();
+  expect(norm(await page.locator('#partner .eyebrow').textContent())).toBe('AI Audit and Control Partner');
+  expect(norm(await page.locator('#partner h2').textContent())).toBe('Behest AI');
+  expect(norm(await page.locator('#partner .partner-desc').textContent())).toBe("ZOE AI keeps client work on the lawyer's own computer. Behest AI keeps the record of what crosses that line. As ZOE AI's AI audit and control partner, Behest AI audits and tracks data moving between the laptop and cloud AI services, giving a firm an auditable trail of where client personal information, sensitive financial data and the firm's intellectual property went.");
+  expect(norm(await page.locator('#partner h3').textContent())).toBe('Garen Azizian');
+  expect(norm(await page.locator('#partner .person-role').textContent())).toBe('Chief Executive Officer, Behest AI');
+  expect(norm(await page.locator('#partner .person-bio').textContent())).toBe('Garen has spent more than 25 years building enterprise systems across security, cloud infrastructure, licensing, billing, data, and monetization. At Palo Alto Networks, he led Enterprise Applications and Quote-to-Cash engineering, including licensing and marketplace infrastructure spanning AWS, Google Cloud, Azure, and Oracle Cloud. He later served as a VP at Forcepoint, leading the Business Transformation and Big Data organizations. Earlier, at Audible Magic, he built content monetization technology at scale and became a named inventor on a granted USPTO patent (US 11,995,609). He founded Behest to bring the visibility and operational control enterprises expect from cloud and security infrastructure to AI.');
+  // The heading is the partner's; the person is a smaller block under it.
+  const size = await page.evaluate(() => ({ h2: parseFloat(getComputedStyle(document.querySelector('#partner h2')).fontSize), h3: parseFloat(getComputedStyle(document.querySelector('#partner h3')).fontSize), photo: document.querySelector('#partner .person-img').getBoundingClientRect().width, founder: document.querySelector('#founder .person-img').getBoundingClientRect().width }));
+  expect(size.h3).toBeLessThan(size.h2);
+  expect(size.photo).toBeLessThan(size.founder);
+  const imgs = await page.locator('#partner img').evaluateAll((els) => els.map((e) => ({ src: e.getAttribute('src'), alt: e.alt, ok: e.complete && e.naturalWidth > 0, loading: e.getAttribute('loading'), w: e.getAttribute('width'), h: e.getAttribute('height') })));
+  expect(imgs).toEqual([
+    { src: 'assets/site/behest-ai-logo.png', alt: 'Behest AI', ok: true, loading: 'lazy', w: '182', h: '65' },
+    { src: 'assets/site/garen-azizian.webp', alt: 'Garen Azizian', ok: true, loading: 'lazy', w: '320', h: '320' },
+  ]);
+  const link = page.locator('#partner a.pill-link');
+  await expect(link).toHaveCount(1);
+  await expect(link).toHaveText('behest.ai');
+  await expect(link).toHaveAttribute('href', 'https://behest.ai/');
+  await expect(link).toHaveAttribute('target', '_blank');
+  expect(await link.getAttribute('rel')).toMatch(/noopener/);
+  expect(await link.getAttribute('rel')).toMatch(/noreferrer/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('#partner').screenshot({ path: path.join(SHOTS, `${info.project.name}-partner.png`) });
+  expect(errors).toEqual([]);
 });
 
 test('click gates, unattended: three real buttons, each presses itself, nothing else competes, and the story is short', async ({ page }, info) => {
