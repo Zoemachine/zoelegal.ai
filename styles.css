@@ -231,6 +231,18 @@ body {
   pointer-events: none;
 }
 
+/* "Zero Online Exposure": capitals with tracking and wide, even gaps; each word's initial in the blue
+   accent and bold, so Z, O, E read across. The text itself stays plain words for screen readers. */
+.zoe-words {
+  text-transform: uppercase;
+  word-spacing: 0.9em;
+}
+.zoe-w { display: inline-block; }
+.zoe-w::first-letter {
+  color: var(--blue);
+  font-weight: 700;
+}
+
 /* The lid's invitation (Act II): the front-centre lip, where a hand flips a laptop open, breathes
    over the baked blue bar (x 44-56 %, y 70-74 % of the frame), and the three chevrons rise from it. */
 .lip {
@@ -1696,9 +1708,11 @@ html.hero-lock body {
   font-size: clamp(28px, 3.4vw, 46px);
   font-weight: 700;
   line-height: 1.1;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
   color: #fff;
 }
+.post-h.zoe-words { word-spacing: 0.45em; }
+.post-h .zoe-w::first-letter { font-weight: 800; }
 
 .post-sub {
   margin: 10px 0 0;
@@ -1748,6 +1762,8 @@ html.hero-lock body {
 
 @media (orientation: portrait) {
   .post-hero { top: calc(var(--nav-h, 60px) + 16px); width: 100%; padding: 0 16px; box-sizing: border-box; }
+  .post-h { font-size: min(28px, 6vw); letter-spacing: 0.05em; white-space: nowrap; }
+  .post-h.zoe-words { word-spacing: 0.3em; }
   .post-sub { margin-top: 8px; }
   .ability h3 { font-size: 22px; }
   .ability p { font-size: 15px; }
