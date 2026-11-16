@@ -133,7 +133,7 @@ function track(event, data) {
   // A stretch over a stretch of the story: holds, typing, page runs, scrolls, zooms and camera moves together
   // (styles.css reads --pace for the camera and the page flight). 1 is the base pace.
   let pace = 1;
-  const PACE_LOCAL = 1.12;     // from the term sheet scan to the third click
+  const PACE_LOCAL = 1.12;     // from the vault search to the third click
   const PACE_CLOUD = 1.3;      // from the third click to the close
   function setPace(k) {
     pace = k;
@@ -152,7 +152,9 @@ function track(event, data) {
   const HANDOVER_BEAT_MS = 400; // after the laptop lands, before the phone moves to it
   const READ_W = 0.66;           // desktop reading camera: the screen's share of the viewport width
   const INSERT_MS = 1500;        // the clause (§ 9.6) appearing line by line in Word
-  const CAPTURE_HOLD_MS = 1100; // the captured page shows in the phone before the laptop comes in
+  const CAPTURE_SETTLE_MS = 550; // the captured page straightens in the phone before the scan
+  const PHONE_SCAN_MS = 1400;    // the phone scan: the items light one after another over this span
+  const PHONE_SCAN_HOLD_MS = 450; // all lit, before the laptop comes in
   const LAPTOP_IN_MS = 1100;    // the laptop's slide in from the right (the .scene translate in styles.css)
 
   // Height of the lid's bright top edge per frame, % of frame height from the top
@@ -339,6 +341,9 @@ function track(event, data) {
     bob: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#3d6fb6"/><circle cx="20" cy="23" r="11" fill="#f1c9a5"/><path d="M9 20c0-8 6-12 11-12 6 0 11 4 11 10-4-1-9-3-11-6-2 4-6 6-11 8z" fill="#3a2a1f"/><rect x="12.5" y="19.5" width="6.5" height="5" rx="1.5" fill="none" stroke="#1b2430" stroke-width="1.2"/><rect x="21" y="19.5" width="6.5" height="5" rx="1.5" fill="none" stroke="#1b2430" stroke-width="1.2"/><path d="M19 21.5h2" stroke="#1b2430" stroke-width="1.2"/><path d="M16.5 28.5h7" stroke="#1b2430" stroke-width="1.5" stroke-linecap="round"/></svg>',
   };
 
+  // ZOE AI in the chat: the Z on the speaker mark's dark pill.
+  AVATARS.zoe = '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#141a26"/><circle cx="20" cy="20" r="18.6" fill="none" stroke="#9cc9ff" stroke-opacity=".55" stroke-width="1.4"/><path d="M13 12.5h14L13.6 27.5H27" fill="none" stroke="#e9eef6" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+
   const NAMES = { jimmy: 'Jimmy', bob: 'Bob', zoe: 'ZOE AI', cloud: 'Cloud AI' };
 
   function announce(who, line, thinking) {
@@ -410,8 +415,8 @@ function track(event, data) {
     const msgs = strip.querySelectorAll('.msg:not(.is-out)');
     if (msgs.length >= maxMsgs()) msgs[0].remove();
     const m = document.createElement('div');
-    m.className = `msg ${who}${thinking ? ' think' : ''}`;
-    m.innerHTML = `<span class="avatar">${AVATARS[who]}</span><p class="bubble">${thinking ? '<span class="who">Bob, thinking</span>' : ''}<span class="txt"></span></p>`;
+    m.className = `msg ${who === 'zoe' ? 'zoe-msg' : who}${thinking ? ' think' : ''}`;
+    m.innerHTML = `<span class="avatar">${AVATARS[who]}</span><p class="bubble">${thinking ? '<span class="who">Bob, thinking</span>' : who === 'zoe' ? '<span class="who">ZOE AI</span>' : ''}<span class="txt"></span></p>`;
     strip.appendChild(m);
     placeStrip();
     void m.offsetWidth;
@@ -772,10 +777,12 @@ function track(event, data) {
 
   // ---------- Builders (fresh DOM on every run, so Replay starts clean) ----------
 
+  // Each identifier on the paper is a span (dollar amounts stay plain), so the phone's copy can light them.
+  const sheetId = (k) => (kept(k) ? esc(PARTIES[k].real) : `<span data-k="${k}">${esc(PARTIES[k].real)}</span>`);
   function buildSheet() {
     sheet.className = 'sheet paper';
     sheet.innerHTML = `<h4>TERM SHEET</h4>` +
-      TERM_SHEET.map(([k, v]) => `<p><b>${esc(k)}.</b> ${esc(fill(v, 'real'))}</p>`).join('') +
+      TERM_SHEET.map(([k, v]) => `<p><b>${esc(k)}.</b> ${esc(v).replace(/\{(\w+)\}/g, (_, key) => sheetId(key))}</p>`).join('') +
       '<div class="type"></div>';
   }
 
@@ -784,7 +791,7 @@ function track(event, data) {
     phone.hidden = false;
     phone.style.removeProperty('--px');
     phone.style.removeProperty('--py');
-    phone.innerHTML = '<span class="phone-halo" aria-hidden="true"></span><div class="phone-body" aria-hidden="true"><div class="phone-screen"><div class="phone-view paper"></div><div class="phone-grid"></div><div class="phone-shutter"></div><div class="phone-flash"></div></div><div class="phone-island"></div></div><span class="phone-cue" aria-hidden="true"></span>';
+    phone.innerHTML = '<span class="phone-halo" aria-hidden="true"></span><div class="phone-body" aria-hidden="true"><div class="phone-screen"><div class="phone-view paper"></div><div class="phone-grid"></div><div class="phone-shutter"></div><div class="phone-flash"></div><span class="phone-zoe">' + AVATARS.zoe + '</span></div><div class="phone-island"></div></div><span class="phone-cue" aria-hidden="true"></span>';
     phone.setAttribute('tabindex', '-1');
     // The viewfinder: a copy of the paper that stays aligned with the real one as the phone moves over it.
     $('.phone-view', phone).innerHTML = sheet.innerHTML;
@@ -1033,14 +1040,33 @@ function track(event, data) {
     setCue();
     stage.dataset.open = 'snapped';
     track('phone_snapped');
-    arrival = laptopArrives();
+    arrival = (async () => {
+      await wait(CAPTURE_SETTLE_MS);
+      await phoneScan();
+      await laptopArrives();
+    })();
     arrival.catch(() => {});
   }
 
-  // After the picture: the captured page holds in the phone, then the closed laptop slides in from the right
-  // and its baked wordmark takes over from the small one.
+  // The scan on the phone: ZOE AI says its line in the chat while the term sheet's critical items light
+  // green on the captured page, one after another, and stay lit.
+  async function phoneScan() {
+    const ids = Array.from(phone.querySelectorAll('.phone-view [data-k]'));
+    phone.classList.add('is-scanning');
+    track('identified');
+    const line = say('zoe', 'scan', false);
+    ids.forEach((el, i) => {
+      const t = later(() => el.classList.add('is-lit'), RM ? 0 : (i / ids.length) * PHONE_SCAN_MS);
+      run.timers.add(t);
+    });
+    await Promise.all([line, wait(PHONE_SCAN_MS + PHONE_SCAN_HOLD_MS)]);
+    ids.forEach((el) => el.classList.add('is-lit'));
+    fly.querySelectorAll('[data-k]').forEach((el) => el.classList.add('is-lit'));   // the page that goes to the laptop
+  }
+
+  // After the scan: the closed laptop slides in from the right and its baked wordmark takes over from the
+  // small one.
   async function laptopArrives() {
-    await wait(CAPTURE_HOLD_MS);
     stage.classList.add('laptop-in');
     stage.dataset.open = 'laptop';
     await wait(LAPTOP_IN_MS);
@@ -1104,6 +1130,8 @@ function track(event, data) {
   async function phoneAuto(method) {
     if (RM) {
       phoneStage = 2;
+      await say('zoe', 'scan');
+      track('identified');
       phone.hidden = true;
       sheet.classList.add('is-gone');
       stage.classList.add('laptop-in');
@@ -1527,7 +1555,6 @@ function track(event, data) {
   // on entry, so the beats can be put in another order by reordering their calls in story().
 
   const CLOCK = window.__ZOE_CLOCK || 'live';   // the menu-bar clock; tests may freeze it
-  const ZOOM_READ = 140;     // Word's zoom for the scrub: the document text grows, never the chrome
   const ZOOM_DRAFT = 120;    // the draft running past
   const ZOOM_CLAUSE = 130;   // the clause landing, and the fix
   let desk = null;
@@ -1551,11 +1578,11 @@ function track(event, data) {
     };
   }
 
-  function mountDesk(width) {
+  function mountDesk(width, app = 'word') {
     if (desk) desk.destroy();
     screen.innerHTML = '';
     screen.hidden = false;
-    desk = window.ZoeScreens ? window.ZoeScreens.mount(screen, { app: 'word', wifi: false, clock: CLOCK, motion: !RM, width: width || 1280 }) : stubDesk();
+    desk = window.ZoeScreens ? window.ZoeScreens.mount(screen, { app, wifi: false, clock: CLOCK, motion: !RM, width: width || 1280 }) : stubDesk();
     void screen.offsetWidth;
     screen.classList.add('is-on');
     return desk;
@@ -1804,53 +1831,6 @@ function track(event, data) {
     return desk.word.scrollTo(y, RM ? 0 : ms * MOTION);
   }
 
-  // Runs Word's page from where it is to `to()` (re-read every frame: the page may reflow), calling
-  // pass(line) with the screen y of a line 80 % of the way down the window, so items light as they arrive.
-  function runPage(ms, to, pass) {
-    const sc = desk.word.scrollEl;
-    const from = sc.scrollTop;
-    const r = run;
-    if (RM) {
-      sc.scrollTop = to();
-      pass(Infinity);
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      const t0 = performance.now();
-      const frame = (now) => {
-        if (r.cancelled) { resolve(); return; }
-        const k = Math.min(1, (now - t0) / (ms * MOTION));
-        sc.scrollTop = from + (to() - from) * easeInOutCubic(k);
-        const box = sc.getBoundingClientRect();
-        pass(box.top + box.height * 0.8);
-        if (k < 1) requestAnimationFrame(frame); else resolve();
-      };
-      requestAnimationFrame(frame);
-    });
-  }
-
-  // The scrub: the page runs down the term sheet and each identifier lights warm yellow as it arrives;
-  // back at the top, ZOE announces it and they all switch at once.
-  const SCRUB_RUN_MS = 1500;
-  const docIds = () => Array.from(desk.word.pageEl.querySelectorAll('[data-k]'));
-  async function findIdentifiers() {
-    const ids = docIds();
-    const sc = desk.word.scrollEl;
-    const lit = new Set();
-    await runPage(SCRUB_RUN_MS, () => Math.max(0, sc.scrollHeight - sc.clientHeight), (line) => {
-      ids.forEach((el) => {
-        if (!lit.has(el) && el.getBoundingClientRect().top < line) {
-          lit.add(el);
-          el.classList.add('zs-hl');
-        }
-      });
-    });
-    check();
-    ids.forEach((el) => el.classList.add('zs-hl'));
-    await wait(200);
-    await wordScrollTo(ids[0], 0.1, 500);
-  }
-
   // The review's scrub, on the draft: every identified term turns at once into its placeholder.
   const draftTerms = () => Array.from(desk.word.pageEl.querySelectorAll('.b-filled:not([data-keep])'));
   function scrubDraft() {
@@ -1983,11 +1963,11 @@ function track(event, data) {
   const alive = () => check(storyRun);
   // Local work first; one masked cloud review at the end; the cloud never speaks.
 
-  // 1. The laptop opens on Word and the term sheet. Wi-Fi off, and ZOE recognises the document.
+  // 1. The laptop opens on the cockpit (the term sheet was scanned on the phone). Wi-Fi off.
   async function beatOpen() {
-    mountDesk();
+    mountDesk(undefined, 'safari');
     loadAgreement();
-    desk.setApp('word');
+    desk.cockpit.setView('documents', { count: VAULT_FOUND }, { instant: true });
     desk.word.setDocument(termSheetDoc(), { title: 'Term Sheet', pages: 2 });
     desk.word.setZoom(100);
     desk.word.setPane('home', { docType: 'Term Sheet', parties: [PARTIES.seller.real.toUpperCase(), PARTIES.buyer.real.toUpperCase()], similar: 4 }, { instant: true });
@@ -1997,25 +1977,12 @@ function track(event, data) {
     camera(geo.portrait ? 'zoom' : 'read');
     await think('wifiOff', false);
     zoe.classList.add('is-in');
-    await readingLayout(true, ZOOM_READ);
     alive();
-  }
-
-  // 2. The term sheet: the page runs down and the critical terms light up yellow. One line, no list.
-  async function beatIdentify() {
     setPace(PACE_LOCAL);
     setAct(3);
-    zoeWorking(true);
-    const scan = zoeSay('scan', false);
-    await findIdentifiers();
-    await scan;
-    zoeWorking(false);
-    track('identified');
-    if (RM) await gesture('identified', 0, async () => {});
-    readingLayout(false, 100);
   }
 
-  // 3. The vault, then the template search, a second each under one line; then the one template found,
+  // 2. The vault, then the template search, a second each under one line; then the one template found,
   // and the visitor chooses it.
   const TEMPLATE_ONE = Object.assign({}, TEMPLATE_SEARCH, { results: TEMPLATE_SEARCH.results.slice(0, 1) });
   async function beatVault() {
@@ -2037,7 +2004,7 @@ function track(event, data) {
     await clickGate('template', 'Choose template');
   }
 
-  // 4. Drafting: one spinner turn, then Word with the draft already filled in (its terms yellow).
+  // 3. Drafting: one spinner turn, then Word with the draft already filled in (its terms yellow).
   async function beatDraft() {
     desk.cockpit.setView('templates', Object.assign({}, TEMPLATE_ONE, { choose: 'drafting' }));
     zoeWorking(true);
@@ -2057,7 +2024,7 @@ function track(event, data) {
     await beat(100);
   }
 
-  // 5. The anti-sandbagging clause: found at once, and the visitor inserts it; it lands at the end of
+  // 4. The anti-sandbagging clause: found at once, and the visitor inserts it; it lands at the end of
   // Article IX as a red tracked insertion.
   async function beatClause() {
     const asking = think('sandbag', false);
@@ -2079,7 +2046,7 @@ function track(event, data) {
     await beat(100);
   }
 
-  // 6. One cloud review: a dialog over Word with one button, and the visitor scrubs and sends.
+  // 5. One cloud review: a dialog over Word with one button, and the visitor scrubs and sends.
   async function beatPropose() {
     clearThoughts();
     zoe.classList.remove('is-in');                 // the dialog speaks for itself
@@ -2088,7 +2055,7 @@ function track(event, data) {
     if (desk.word.setDialog) desk.word.setDialog(null);
   }
 
-  // 7. The scrub plays at the top of the draft (yellow terms to placeholders), the scrubbed copy goes out and
+  // 6. The scrub plays at the top of the draft (yellow terms to placeholders), the scrubbed copy goes out and
   // the answer comes back, with Wi-Fi on only for the exchange.
   async function beatReview() {
     setPace(PACE_CLOUD);
@@ -2134,7 +2101,7 @@ function track(event, data) {
     await beat(100);
   }
 
-  // 8. The review's change lands, still in placeholders: the parent joins as a party (the parties clause,
+  // 7. The review's change lands, still in placeholders: the parent joins as a party (the parties clause,
   // then Article V). Every edit is a red tracked insertion; Article IX is not in view from here on.
   async function beatApply() {
     setStep(4.5);
@@ -2168,7 +2135,7 @@ function track(event, data) {
     return desk.word.scrollTo(0, RM ? 0 : ms * MOTION);
   }
 
-  // 9. The names come back: every placeholder turns back into the real name, address or date, a brief green
+  // 8. The names come back: every placeholder turns back into the real name, address or date, a brief green
   // flash settling in the same yellow as before the scrub.
   async function beatRestore() {
     await topOfDraft(500);
@@ -2377,8 +2344,8 @@ function track(event, data) {
         </section>
       </div>
       <ol class="timeline" aria-label="Wi-Fi timeline">
+        <li class="off">Critical information found on the phone</li>
         <li class="off">Wi-Fi OFF · Air-gapped</li>
-        <li class="off">Critical information found</li>
         <li class="off">Scrubbed</li>
         <li class="on">Wi-Fi ON</li>
         <li class="on">Scrubbed draft sent</li>
@@ -2429,6 +2396,7 @@ function track(event, data) {
     setCue();
     // Each gesture is armed as soon as its prompt appears; its idle clock starts then.
     await gesture('phone', IDLE_FIRST_MS, phoneAuto, phone);
+    if (RM) await gesture('identified', 0, async () => {});   // reduced motion: a stop on the scan's line
     phone.setAttribute('tabindex', '-1');
     clearStrip('.msg:not(.think)');
 
@@ -2448,15 +2416,14 @@ function track(event, data) {
       g2 = gesture('lid', IDLE_LATER_MS, lidGesture, lidHit);
     }
     await Promise.all([thoughts, g2]);
-    await beatOpen();      // 1. Word, the term sheet, Wi-Fi off
-    await beatIdentify();  // 2. the critical terms light up yellow
-    await beatVault();     // 3. vault and template search; click one: Choose template
-    await beatDraft();     // 4. drafted: Word with the draft filled in
-    await beatClause();    // 5. the clause found; click two: Insert
-    await beatPropose();   // 6. click three: Scrub and send to cloud
-    await beatReview();    // 7. the scrub, out and back, Wi-Fi on only for the exchange
-    await beatApply();     // 8. the review's change lands, in placeholders
-    await beatRestore();   // 9. the names come back, yellow
+    await beatOpen();      // 1. the cockpit, Wi-Fi off
+    await beatVault();     // 2. vault and template search; click one: Choose template
+    await beatDraft();     // 3. drafted: Word with the draft filled in
+    await beatClause();    // 4. the clause found; click two: Insert
+    await beatPropose();   // 5. click three: Scrub and send to cloud
+    await beatReview();    // 6. the scrub, out and back, Wi-Fi on only for the exchange
+    await beatApply();     // 7. the review's change lands, in placeholders
+    await beatRestore();   // 8. the names come back, yellow
 
     // Act V — ten minutes are up
     setPace(1);

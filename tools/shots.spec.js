@@ -48,7 +48,7 @@ const isWide = (info) => info.project.name === 'wide';
 const RESTRICTED_FILE = path.join(__dirname, 'restricted-words.local.json');
 const RESTRICTED = fs.existsSync(RESTRICTED_FILE) ? JSON.parse(fs.readFileSync(RESTRICTED_FILE, 'utf8')) : null;
 // The hero's one device: allowed in the hero's Act I text (its no-JS line), forbidden below the hero and on the other pages.
-const PHONE = JSON.parse(Buffer.from('eyJyZSI6ICJcXGJwaG9uZXM/XFxiIiwgImFsbG93ZWRUZXh0IjogWyJ0aGUgcGhvbmUgaGFuZHMgaXQgdG8gdGhlIGxhcHRvcCJdfQ==', 'base64').toString());
+const PHONE = JSON.parse(Buffer.from('eyJyZSI6IlxcYnBob25lcz9cXGIiLCJhbGxvd2VkVGV4dCI6WyJ0aGUgcGhvbmUgaGFuZHMgaXQgdG8gdGhlIGxhcHRvcCIsIk9uIHRoZSBwaG9uZSwgdGhlIGNyaXRpY2FsIHRlcm1zIGxpZ2h0IHVwIGdyZWVuLiIsIlRoZSBwaG9uZSBoYW5kcyB0aGUgdGVybSBzaGVldCB0byB0aGUgbGFwdG9wLiJdfQ==', 'base64').toString());
 // Product names: the four frontier products under the cloud, in hero.js's PROVIDERS block and nowhere else.
 const PRODUCTS = JSON.parse(Buffer.from('eyJhbGxvd2VkSW4iOiAiaGVyby5qcyIsICJmcm9tIjogIi8vIFRoZSBjbG91ZCBBSSBtb2RlbHMgbmFtZWQgdW5kZXIgdGhlIGNsb3VkIiwgInRvIjogIl07IiwgImFsbG93ZWQiOiBbIkNoYXRHUFQiLCAiQ2xhdWRlIiwgIkdlbWluaSIsICJDb3BpbG90Il0sICJmb3JiaWRkZW4iOiBbIlxcYkdQVC0/XFxkIiwgIlxcYkxsYW1hXFxiIiwgIlxcYk1pc3RyYWxcXGIiLCAiXFxiR3Jva1xcYiIsICJcXGJCYXJkXFxiIiwgIlxcYkRlZXBTZWVrXFxiIl19', 'base64').toString());
 // Allowed in the comparison's Standard cloud AI panel and nowhere else: its layout block
@@ -59,8 +59,8 @@ const PANEL_TO = 'const ZOE = {';
 // The clause is a plain insertion (Section 9.6, after Article IX's last section); nothing is ever struck.
 const CLAUSE_TEXT = 'Section 9.6 Knowledge; No Sandbagging. Notwithstanding anything in this Agreement to the contrary, no Buyer Indemnified Party may recover any Losses for the breach of a representation or warranty of the Company if Merger Sub had actual knowledge of that breach before the Closing. For this purpose, actual knowledge means the awareness of the facts constituting the breach by any individual named as a member of Merger Sub\'s deal team in the Disclosure Schedule. A Buyer Indemnified Party that elects to close with that knowledge waives all claims for that breach. This Section does not limit recovery for Fraud.';
 // The spoken lines after the laptop opens, in order (the product's lines carry the label "ZOE AI"), then the unchanged close.
+// The term-sheet scan line is said earlier, on the phone.
 const STORY_AFTER_LID = [
-  'ZOE AI: Finding critical information in the term sheet.',
   'ZOE AI: Searching the vault for relevant information and potential templates.',
   'ZOE AI: Found a potential template.',
   'ZOE AI: Drafting document.',
@@ -485,7 +485,7 @@ test('Act I: drag the phone onto the term sheet, press the shutter; the phone ha
   await page.waitForTimeout(150);
   await shot(page, info, 'act1-snap');
   // Still holding the phone: the captured page shows in it, then the laptop slides in and the small wordmark goes.
-  await page.waitForFunction(() => window.__zoeHero.opening === 'laptop-ready', null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__zoeHero.opening === 'laptop-ready', null, { timeout: 8000 });
   await page.waitForTimeout(300);
   const scr = await page.locator('.phone-screen').boundingBox();
   const cap = await page.locator('.phone-view').boundingBox();
@@ -623,85 +623,109 @@ test('Act II, desktop: a wheel tick opens the lid without scrolling; so does Arr
   await page.waitForFunction(() => window.__zoeHero.progress === 1, null, { timeout: 4000 });
 });
 
-// The scrub-less opening: the term sheet's key terms are identified (yellow) and STAY yellow; nothing is scrubbed yet.
-test('Acts II-III: Mac Word, Wi-Fi OFF before ZOE speaks, the key terms light up yellow and stay yellow, nothing is scrubbed', async ({ page }, info) => {
+// The scan runs on the phone: the critical items light green on the captured page, ZOE AI says its line, and the items stay lit
+// as the page goes to the laptop. The laptop opens on Safari and the vault search; no term sheet is shown or scanned on it.
+test('Act I-III: the green scan on the phone before the laptop, Wi-Fi OFF before the vault search, no term-sheet scan on the laptop', async ({ page }, info) => {
   test.setTimeout(150000);
   const errors = watchErrors(page);
   await open(page);
   await startJournal(page);
+  // Records the phone's scan frame by frame, up to the moment the laptop slides in.
+  await page.evaluate(() => {
+    const rec = { snapped: null, scanning: null, laptopIn: null, zoeVisible: false, bubble: null, lit: null, total: null, litAtScanStart: null, color: null, amountsLit: null, flyLit: null, flyTotal: null, skipBefore: null };
+    window.__scan = rec;
+    const tick = () => {
+      const now = performance.now();
+      const phone = document.querySelector('.phone');
+      const stage = document.querySelector('.stage');
+      if (rec.snapped === null && phone.classList.contains('is-snapped')) rec.snapped = now;
+      if (rec.scanning === null && phone.classList.contains('is-scanning')) {
+        rec.scanning = now;
+        rec.litAtScanStart = phone.querySelectorAll('.phone-view [data-k].is-lit').length;
+      }
+      if (rec.scanning !== null && rec.laptopIn === null) {
+        if (parseFloat(getComputedStyle(document.querySelector('.phone-zoe')).opacity) > 0.9) rec.zoeVisible = true;
+        const m = Array.from(document.querySelectorAll('.strip .msg.zoe-msg')).pop();
+        if (m) rec.bubble = { who: (m.querySelector('.who') || {}).textContent, txt: m.querySelector('.txt').textContent };
+      }
+      if (rec.laptopIn === null && stage.classList.contains('laptop-in')) {
+        rec.laptopIn = now;
+        const keys = Array.from(phone.querySelectorAll('.phone-view [data-k]'));
+        const lit = keys.filter((e) => e.classList.contains('is-lit'));
+        rec.total = keys.length;
+        rec.lit = lit.length;
+        rec.color = lit.length ? getComputedStyle(lit[0]).backgroundColor.match(/[\d.]+/g).map(Number) : null;
+        rec.amountsLit = keys.filter((e) => /\$\d/.test(e.textContent)).length;
+        rec.amountsMarked = Array.from(phone.querySelectorAll('.phone-view .is-lit')).filter((e) => /\$\d/.test(e.textContent)).length;
+        const fly = Array.from(document.querySelectorAll('.fly [data-k]'));
+        rec.flyTotal = fly.length;
+        rec.flyLit = fly.filter((e) => e.classList.contains('is-lit')).length;
+        rec.skipBefore = document.querySelector('.skip-step') ? document.querySelector('.skip-step').classList.contains('is-in') : false;
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await openLid(page);
-  // The laptop's screen is a Mac desktop: the Apple logo, Word's menus, no Dock. Wi-Fi goes OFF before ZOE speaks.
+  const scan = await page.evaluate(() => window.__scan);
+  // The order: the picture, the scan on the phone, then the laptop.
+  expect(scan.snapped).not.toBeNull();
+  expect(scan.scanning).toBeGreaterThanOrEqual(scan.snapped);
+  expect(scan.laptopIn).toBeGreaterThan(scan.scanning);
+  expect(scan.laptopIn - scan.scanning, 'the phone scan is short').toBeLessThan(3000);
+  // Fourteen critical items, all green before the laptop arrives, and none of the five dollar amounts.
+  expect(scan.total).toBe(14);
+  expect(scan.lit).toBe(scan.total);
+  expect(scan.amountsLit).toBe(0);
+  expect(scan.amountsMarked).toBe(0);
+  expect(scan.color[1], 'green is the strong channel').toBeGreaterThan(150);
+  expect(scan.color[1]).toBeGreaterThan(scan.color[0] + 60);
+  expect(scan.color[1]).toBeGreaterThan(scan.color[2] + 40);
+  expect(scan.flyTotal).toBe(14);
+  expect(scan.flyLit).toBe(14);
+  expect(scan.zoeVisible, 'the ZOE AI mark shows on the phone while it scans').toBe(true);
+  expect(scan.bubble).toEqual({ who: 'ZOE AI', txt: 'Finding critical information in the term sheet.' });
+  expect(scan.skipBefore, 'the skip control is not up yet').toBe(false);
+  // The items are still lit and the page that flew is lit too; nothing on the phone is yellow.
+  expect(await page.locator('.phone-view [data-k]').count()).toBe(14);
+  expect(await page.locator('.phone-view [data-k]:not(.is-lit)').count()).toBe(0);
+  expect(await page.locator('.phone-view [data-k]').evaluateAll((els) => els.filter((e) => /\$\d/.test(e.textContent)).length)).toBe(0);
+  // The laptop's screen is a Mac desktop opening on Safari: the Apple logo, no Dock. Wi-Fi goes OFF before ZOE speaks on it.
   await page.waitForFunction(() => window.__journal.some((e) => e.k === 'wifi' && e.v === 'off'), null, { timeout: 40000 });
   await expect(page.locator('.screen .zs-root')).toBeVisible();
   await expect(page.locator('.screen .zs-menubar .zs-apple')).toHaveCount(1);
-  expect(await page.locator('.screen .zs-menubar').innerText().then((t) => t.replace(/\s+/g, ' '))).toMatch(/^Word File Edit View Insert Format Tools Table Window Help/);
+  await said(page, 'Searching the vault for relevant information and potential templates.', 30000);
+  await page.waitForFunction(() => /^Safari File Edit View History Bookmarks Window Help/.test(document.querySelector('.screen .zs-menubar').innerText.replace(/\s+/g, ' ')), null, { timeout: 5000 });
+  expect(await page.locator('.screen .zs-menubar').innerText().then((t) => t.replace(/\s+/g, ' '))).toMatch(/^Safari File Edit View History Bookmarks Window Help/);
   expect(await page.locator('.screen [class*="dock" i]').count()).toBe(0);
   await expect(page.locator('.wifi-callout')).toBeVisible();
   await expect(page.locator('.wifi-callout')).toHaveClass(/is-off/);
   await expect(page.locator('.wifi-callout .wc-text')).toHaveText('Wi-Fi OFF');
-  // No Mark or Scrub button and no sweep, and no gesture to perform.
   expect(await page.locator('.btn-mark, .btn-scrub, .sweep').count()).toBe(0);
-  const total = await page.locator('.screen .zs-page [data-k]').count();
-  expect(total).toBeGreaterThanOrEqual(14); // names, addresses, the EIN, the escrow account and three dates: not the dollar amounts
-  await shot(page, info, 'act3-word');
-  // Only the document text zooms (Word's own zoom): the status bar's percent moves up from 100 (the same on the phone as on the desktop), and the ZOE pane is open inside the Word window.
-  await page.waitForFunction(() => /\b(1[4-9]\d|[2-9]\d\d)%/.test(document.querySelector('.screen').innerText), null, { timeout: 15000 });
-  await expect(page.locator('.screen .zs-word .zs-pane')).toBeVisible();
-  expect(await page.evaluate(() => { const w = document.querySelector('.screen .zs-word').getBoundingClientRect(); const r = document.querySelector('.screen .zs-pane').getBoundingClientRect(); return r.width > 0.15 * w.width && r.height > 0.4 * w.height && r.left >= w.left - 1 && r.right <= w.right + 1 && r.bottom <= w.bottom + 1; })).toBe(true);
-  expect(await page.evaluate(() => document.querySelectorAll('.zs-root.b-web, .b-web').length)).toBe(0); // the phone has no web layout any more
   expect(await hero(page, 'gesture')).toBeNull();
-  // The page runs down the sheet and every key term is yellow.
-  await page.waitForFunction(() => {
-    const pg = document.querySelector('.screen .zs-page');
-    return pg.querySelectorAll('[data-k].zs-hl').length === pg.querySelectorAll('[data-k]').length;
-  }, null, { timeout: 20000 });
-  const yellow = await page.locator('.screen .zs-page [data-k].zs-hl').first().evaluate((el) => getComputedStyle(el).backgroundColor.match(/[\d.]+/g).map(Number));
-  expect(yellow[0]).toBeGreaterThan(200); // warm yellow: strong red and green, weak blue
-  expect(yellow[1]).toBeGreaterThan(150);
-  expect(yellow[2]).toBeLessThan(yellow[0] - 60);
-  await shot(page, info, 'act3-highlight');
-  // ZOE's one line over the sweep; the terms STAY yellow, and nothing switches to a placeholder.
-  await said(page, 'Finding critical information in the term sheet.', 30000);
-  await page.waitForTimeout(800);
-  const after = await page.evaluate(() => {
-    const pg = document.querySelector('.screen .zs-page');
-    return { hl: pg.querySelectorAll('[data-k].zs-hl').length, keys: pg.querySelectorAll('[data-k]').length, ph: pg.querySelectorAll('.zs-ph').length, texts: Array.from(pg.querySelectorAll('[data-k]')).map((e) => e.textContent) };
-  });
-  expect(after.ph).toBe(0);
-  expect(after.hl).toBe(after.keys);
-  expect(after.keys).toBe(total);
-  const text = await page.$eval('.screen .zs-page', (el) => el.textContent);
-  expect(text).toMatch(/Kestrel|Meridian/); // the real names are still there
-  expect(text).not.toMatch(/\bParty \d\b|\bPerson \d\b|\bAddress \d\b|\[(ORG|PERSON|ADDRESS)_\d+\]/);
-  // Dates: the three real dates are on the sheet and yellow, and no token exists before the scrub.
-  expect(text).not.toContain(DATE_TOKEN);
-  const sheet = await page.evaluate(() => {
-    const pg = document.querySelector('.screen .zs-page');
-    return { hl: Array.from(pg.querySelectorAll('.zs-hl')).map((e) => e.textContent), text: pg.textContent };
-  });
-  REAL_DATES.forEach((d) => { expect(sheet.hl, `${d} is yellow`).toContain(d); });
-  // Dollar amounts: the five figures are on the sheet as plain text, never highlighted, never in a chip.
-  expect((text.match(AMOUNT_RE) || []).length).toBeGreaterThanOrEqual(5);
-  ['$45,000,000', '$4,500,000', '$6,000,000', '$30,000,000', '$750,000'].forEach((a) => expect(text, a).toContain(a));
-  expect(sheet.hl.filter((t) => /\$\d/.test(t))).toEqual([]);
-  expect(await page.locator('.screen .zs-page [data-k]').evaluateAll((els) => els.filter((e) => /\$\d/.test(e.textContent)).length)).toBe(0);
-  await shot(page, info, 'act3-identified');
-  // The skip control is there from here on, with its label.
+  await shot(page, info, 'act3-cockpit');
+  // No term-sheet scan on the laptop: no highlight, no placeholder and no marked term anywhere on its screen, and no sweep.
+  expect(await page.locator('.screen .zs-hl, .screen .zs-ph, .screen .zs-page [data-k].zs-hl').count()).toBe(0);
+  expect(await page.evaluate(() => document.querySelectorAll('.zs-root.b-web, .b-web').length)).toBe(0); // the phone has no web layout any more
+  // The skip control is there from the vault search on, with its label.
   await expect(page.locator('.skip-step')).toHaveClass(/is-in/);
   await expect(page.locator('.skip-step')).toHaveText('Skip introductory illustration');
-  // The order of the lines, and the Wi-Fi: OFF before the first ZOE line; no scrub line yet.
+  // The order of the lines: the scan line first (on the phone), then the hand-over, the Wi-Fi, and the vault search with the Wi-Fi already off.
   const j = await page.evaluate(() => window.__journal);
   const lines = j.filter((e) => e.k === 'line').map((e) => e.v);
-  const order = ['Bob (thinking): Picture taken. Into the laptop.', "Bob (thinking): I don't trust their Wi-Fi. Going local.", "Bob (thinking): Wi-Fi off. Let's go.",
-    'ZOE AI: Finding critical information in the term sheet.'];
+  const order = ['ZOE AI: Finding critical information in the term sheet.', 'Bob (thinking): Picture taken. Into the laptop.', "Bob (thinking): I don't trust their Wi-Fi. Going local.", "Bob (thinking): Wi-Fi off. Let's go.",
+    'ZOE AI: Searching the vault for relevant information and potential templates.'];
   const at = order.map((l) => lines.indexOf(l));
   if (!at.every((i) => i >= 0)) console.log('[journal]', JSON.stringify(lines));
   expect(at.every((i) => i >= 0)).toBe(true);
   expect(at).toEqual([...at].sort((a, b) => a - b));
   expect(lines.some((l) => /Scrubb/i.test(l))).toBe(false);
-  const firstZoe = j.find((e) => e.k === 'line' && e.v.startsWith('ZOE AI:'));
+  const scanLine = j.find((e) => e.k === 'line' && e.v === 'ZOE AI: Finding critical information in the term sheet.');
+  const vaultLine = j.find((e) => e.k === 'line' && e.v.startsWith('ZOE AI: Searching'));
   const firstOff = j.find((e) => e.k === 'wifi' && e.v === 'off');
-  expect(firstOff.t).toBeLessThan(firstZoe.t);
+  expect(scanLine.t).toBeLessThan(scan.laptopIn + 50);
+  expect(firstOff.t).toBeLessThan(vaultLine.t);
   expect(errors).toEqual([]);
 });
 
@@ -730,13 +754,11 @@ test('Acts III-V: three click gates, one line over the vault and templates, the 
   // No amount sits inside a highlight, a chip or an edit mark, at any moment.
   const amountsMarked = () => page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page .zs-hl, .screen .zs-page .zs-ph, .screen .zs-page [data-k]')).filter((e) => /\$\d/.test(e.textContent)).map((e) => e.textContent));
 
-  // The term sheet's figures (read at the end of the identification, while the term sheet is still on screen).
-  await said(page, 'Finding critical information in the term sheet.');
-  await page.waitForFunction(() => { const pg = document.querySelector('.screen .zs-page'); return pg.querySelectorAll('[data-k].zs-hl').length === pg.querySelectorAll('[data-k]').length; }, null, { timeout: 20000 });
-  const termSheet = await page.evaluate(() => Array.from(document.querySelectorAll('.screen .zs-page [data-k]')).map((e) => e.textContent));
-  // The term sheet's dollar amounts are plain text now (not marked terms): read them from the page.
-  const termFigures = Array.from(new Set(await page.$eval('.screen .zs-page', (el) => el.textContent.match(/\$\d[\d,]*/g) || [])));
+  // The term sheet's figures come from the phone's captured page (the scan is there; the laptop shows no term sheet).
+  const termSheet = await page.evaluate(() => Array.from(document.querySelectorAll('.phone-view [data-k]')).map((e) => e.textContent));
+  const termFigures = Array.from(new Set(await page.$eval('.phone-view', (el) => el.textContent.match(/\$\d[\d,]*/g) || [])));
   expect(termFigures.length).toBeGreaterThanOrEqual(5);
+  expect(termSheet.length).toBe(14);
   expect(termSheet.filter((t) => /\$\d/.test(t))).toEqual([]);
   expect(await amountsMarked()).toEqual([]);
 
@@ -1796,7 +1818,7 @@ async function expectAbility(page, a, { hash = true } = {}) {
 test('after the introduction: the headline, the subhead, the four abilities beside a smaller laptop, and nothing else', async ({ page }, info) => {
   const errors = watchErrors(page);
   await postPage(page);
-  await expect(page.locator('.post-h')).toHaveText('Safe. Sovereign. System-bound.');
+  await expect(page.locator('.post-h')).toHaveText(/^Zero Online Exposure$/i);
   await expect(page.locator('.post-sub')).toHaveText('Take back control of your data. Automate document drafting and diligence, without exposing client data or law firm IP. Runs on the laptop you already have; no new hardware.');
   // Gone from the hero: the booking button (the navigation's button is the call), Replay, and the row of tabs.
   expect(await page.locator('.post-book, .post-replay, .post-tab, .post-tabs').count()).toBe(0);
@@ -2162,9 +2184,6 @@ test('Word\'s zoom on the phone equals the desktop\'s at the same beats, and the
     const zoom = async () => { let prev = await read(); for (let i = 0; i < 10; i += 1) { await page.waitForTimeout(500); const now = await read(); if (now === prev) return now; prev = now; } return prev; }; // settled: the zoom animates
     const pane = () => page.evaluate(() => { const w = document.querySelector('.screen .zs-word').getBoundingClientRect(); const e = document.querySelector('.screen .zs-pane'); const r = e.getBoundingClientRect(); return !e.hidden && r.width > 0.15 * w.width && r.height > 0.4 * w.height && r.left >= w.left - 1 && r.right <= w.right + 1 && r.bottom <= w.bottom + 1; });
     const z = {};
-    await said(page, 'Finding critical information in the term sheet.', 40000);
-    await page.waitForTimeout(1500);
-    z.identified = await zoom(); z.paneIdentified = await pane();
     await said(page, 'Drafting document.', 60000);
     await page.waitForFunction(() => !document.querySelector('.screen .zs-page .b-fill') && document.querySelectorAll('.screen .zs-page .b-filled').length > 20, null, { timeout: 30000 });
     await page.waitForTimeout(1200);
